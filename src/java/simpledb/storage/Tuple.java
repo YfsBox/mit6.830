@@ -9,7 +9,7 @@ import java.util.Iterator;
  * specified schema specified by a TupleDesc object and contain Field objects
  * with the data for each field.
  */
-public class Tuple implements Serializable {
+public class Tuple implements Serializable { //表明Tuple元组是可以进行序列化的,在这里只起到一种标识作用,内容没用上。
 
     private static final long serialVersionUID = 1L;
 

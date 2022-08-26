@@ -12,12 +12,13 @@ import java.io.*;
  * Types are static objects defined by this class; hence, the Type
  * constructor is private.
  */
+//枚举主要定义了两个数据类型,int和string。
 public enum Type implements Serializable {
     INT_TYPE() {
         @Override
         public int getLen() {
             return 4;
-        }
+        } //一个int 4个字节
 
         @Override
         public Field parse(DataInputStream dis) throws ParseException {
@@ -32,7 +33,7 @@ public enum Type implements Serializable {
         @Override
         public int getLen() {
             return STRING_LEN+4;
-        }
+        } //为什么要加上4个字节呢？
 
         @Override
         public Field parse(DataInputStream dis) throws ParseException {
@@ -54,7 +55,6 @@ public enum Type implements Serializable {
    * @return the number of bytes required to store a field of this type.
    */
     public abstract int getLen();
-
   /**
    * @return a Field object of the same type as this object that has contents
    *   read from the specified DataInputStream.
