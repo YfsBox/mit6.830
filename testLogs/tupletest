@@ -1,0 +1,49 @@
+Buildfile: /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/build.xml
+
+compile:
+   [depend] The class simpledb.index.BTreeSearchIterator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/index/BTreeSearchIterator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] The class simpledb.index.BTreeFileIterator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/index/BTreeFileIterator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] The class simpledb.index.BTreeLeafPageIterator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/index/BTreeLeafPageIterator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] The class simpledb.index.BTreeLeafPageReverseIterator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/index/BTreeLeafPageReverseIterator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] The class simpledb.TupleArrayIterator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/TupleArrayIterator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] The class simpledb.execution.TupleComparator in file /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src/simpledb/execution/TupleComparator.class is out of date due to simpledb.storage.Tuple but has not been deleted because its source file could not be determined
+   [depend] Deleted 26 out of date files in 0 seconds
+    [javac] Compiling 21 source files to /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/src
+
+testcompile:
+   [depend] Deleted 1 out of date files in 0 seconds
+    [javac] Compiling 1 source file to /Users/yangfengshuo/IdeaProjects/simple-db-hw-2021/bin/test
+
+runtest:
+    [junit] Running simpledb.TupleTest
+    [junit] Testsuite: simpledb.TupleTest
+    [junit] Tests run: 3, Failures: 1, Errors: 1, Skipped: 0, Time elapsed: 0.011 sec
+    [junit] Tests run: 3, Failures: 1, Errors: 1, Skipped: 0, Time elapsed: 0.011 sec
+    [junit] ------------- Standard Output ---------------
+    [junit] Start getTupleDesc
+    [junit] null(INT_TYPE)
+    [junit] null(INT_TYPE)
+    [junit] null(INT_TYPE)
+    [junit] null(INT_TYPE)
+    [junit] null(INT_TYPE)
+    [junit] Pass getTupleDesc
+    [junit] Start modifyRecordId
+    [junit] null(INT_TYPE)
+    [junit] Start modifyFields
+    [junit] null(INT_TYPE)
+    [junit] null(INT_TYPE)
+    [junit] ------------- ---------------- ---------------
+    [junit] 
+    [junit] Testcase: getTupleDesc took 0.004 sec
+    [junit] Testcase: modifyRecordId took 0.001 sec
+    [junit] 	Caused an ERROR
+    [junit] modifyRecordId() test failed due to RecordId.equals() not being implemented.  This is not required for Lab 1, but should pass when you do implement the RecordId class.
+    [junit] java.lang.UnsupportedOperationException: modifyRecordId() test failed due to RecordId.equals() not being implemented.  This is not required for Lab 1, but should pass when you do implement the RecordId class.
+    [junit] 	at simpledb.TupleTest.modifyRecordId(TupleTest.java:61)
+    [junit] 
+    [junit] Testcase: modifyFields took 0 sec
+    [junit] 	Caused an ERROR
+    [junit] expected:<-1> but was:<null>
+    [junit] java.lang.AssertionError: expected:<-1> but was:<null>
+    [junit] 	at simpledb.TupleTest.modifyFields(TupleTest.java:25)
+    [junit] 

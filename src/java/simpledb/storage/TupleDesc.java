@@ -76,8 +76,19 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
             ItermList_.add(newItem);//加入新的Item
         }
         fieldNum_ = len;
-        PrintItemForTest();
+        //PrintItemForTest();
     }
+
+    public TupleDesc(TupleDesc td) { //实现拷贝构造函数,深拷贝
+        fieldNum_ = td.fieldNum_;
+        ItermList_ = new ArrayList<TDItem>(fieldNum_);
+
+        for (int i = 0; i < fieldNum_; i ++) {
+            TDItem newItem = new TDItem(td.getFieldType(i),td.getFieldName(i));
+            ItermList_.add(newItem);
+        }
+    }
+
     public void PrintItemForTest() {
         for (TDItem item:ItermList_) {
             System.out.println(item.toString());
