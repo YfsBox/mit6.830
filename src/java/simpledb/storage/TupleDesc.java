@@ -69,13 +69,14 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
     public TupleDesc(Type[] typeAr, String[] fieldAr) { //构造函数
         // some code goes here
         int len = fieldAr.length;
+
+        ItermList_ = new ArrayList<TDItem>(len);
         for (int i = 0; i < len; i ++) {
             TDItem newItem = new TDItem(typeAr[i],fieldAr[i]);
             ItermList_.add(newItem);//加入新的Item
         }
         fieldNum_ = len;
         PrintItemForTest();
-
     }
     public void PrintItemForTest() {
         for (TDItem item:ItermList_) {
@@ -93,6 +94,8 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
     public TupleDesc(Type[] typeAr) { //这个构造函数所创建的没有名字
         // some code goes here
         int len = typeAr.length;
+        ItermList_ = new ArrayList<TDItem>(len);
+
         for (int i = 0; i < len; i ++ ) {
             TDItem newItem = new TDItem(typeAr[i],null);
             ItermList_.add(newItem);
@@ -162,7 +165,11 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
         // some code goes here
         for (int i = 0; i < fieldNum_;i ++ ) {
             TDItem item = ItermList_.get(i);
-            if (item.fieldName.equals(name)) {
+            String itemName = item.fieldName;
+            if ((name != null && itemName == null) || (name == null && itemName != null)) {
+                continue;
+            }
+            if (name == null || name.equals(itemName)) {
                 return i;
             }
         }
@@ -175,7 +182,11 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
      */
     public int getSize() {
         // some code goes here
-        return 0;
+        int size = 0;
+        for (TDItem item: ItermList_) {
+            size += item.fieldType.getLen();
+        }
+        return size;
     }
 
     /**
@@ -190,7 +201,22 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
      */
     public static TupleDesc merge(TupleDesc td1, TupleDesc td2) { //合并函数
         // some code goes here
-        return null;
+        int len1 = td1.numFields(),len2 = td2.numFields();
+        int len = len1 + len2;
+        Type[] types = new Type[len];
+        String[] names = new String[len];
+        int i = 0;
+        for (; i < len1 ; i ++) {
+            types[i] = td1.getFieldType(i);
+            names[i] = td1.getFieldName(i);
+        }
+        for (; i < len ; i ++ ) {
+            types[i] = td2.getFieldType(i - len1);
+            names[i] = td2.getFieldName(i - len1);
+        }
+        TupleDesc newtd = new TupleDesc(types,names);
+
+        return newtd;
     }
 
     /**
@@ -206,7 +232,20 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
 
     public boolean equals(Object o) {
         // some code goes here
-        return false;
+        if (!this.getClass().isInstance(o)) {
+            return false;
+        }
+        TupleDesc desc = (TupleDesc) o;
+        if (desc.numFields() != fieldNum_) {
+            return false;
+        }
+        for (int i = 0; i < fieldNum_ ; i ++) {
+            TDItem thisItem = ItermList_.get(i);
+            if (!thisItem.fieldType.equals(desc.getFieldType(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public int hashCode() {
@@ -224,6 +263,15 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
      */
     public String toString() {
         // some code goes here
-        return "";
+        String str = "";
+        for (int i = 0 ; i < fieldNum_;i ++) {
+            TDItem item = ItermList_.get(i);
+            String itemStr = String.format("%s(%s)",item.fieldType.toString(),item.fieldName);
+            if (i != fieldNum_ - 1) {
+                itemStr = itemStr + ',';
+            }
+            str = str + itemStr;
+        }
+        return str;
     }
 }

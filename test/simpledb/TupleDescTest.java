@@ -19,6 +19,7 @@ public class TupleDescTest extends SimpleDbTestBase {
      * Unit test for TupleDesc.combine()
      */
     @Test public void combine() {
+        System.out.println("Start combine test");
         TupleDesc td1, td2, td3;
 
         td1 = Utility.getTupleDesc(1, "td1");
@@ -47,6 +48,7 @@ public class TupleDescTest extends SimpleDbTestBase {
         for (int i = 0; i < 4; ++i)
             assertEquals(Type.INT_TYPE, td3.getFieldType(i));
         assertTrue(combinedStringArrays(td2, td2, td3));
+        System.out.println("Combine test ok");
     }
 
     /**
@@ -74,6 +76,7 @@ public class TupleDescTest extends SimpleDbTestBase {
      * Unit test for TupleDesc.getType()
      */
     @Test public void getType() {
+        System.out.println("Start getType test");
         int[] lengths = new int[] { 1, 2, 1000 };
 
         for (int len: lengths) {
@@ -81,12 +84,14 @@ public class TupleDescTest extends SimpleDbTestBase {
             for (int i = 0; i < len; ++i)
                 assertEquals(Type.INT_TYPE, td.getFieldType(i));
         }
+        System.out.println("GetType test ok");
     }
     
     /**
      * Unit test for TupleDesc.nameToId()
      */
     @Test public void nameToId() {
+        System.out.println("Start nametoId test");
         int[] lengths = new int[] { 1, 2, 1000 };
         String prefix = "test";
         
@@ -122,33 +127,39 @@ public class TupleDescTest extends SimpleDbTestBase {
                 // expected to get here
             }
         }
+        System.out.println("nameToId test ok");
     }    
 
     /**
      * Unit test for TupleDesc.getSize()
      */
     @Test public void getSize() {
+        System.out.println("Start getSize test");
         int[] lengths = new int[] { 1, 2, 1000 };
 
         for (int len: lengths) {
             TupleDesc td = Utility.getTupleDesc(len);
             assertEquals(len * Type.INT_TYPE.getLen(), td.getSize());
         }
+        System.out.println("getSize test ok");
     }
 
     /**
      * Unit test for TupleDesc.numFields()
      */
     @Test public void numFields() {
+        System.out.println("Start numFields test");
         int[] lengths = new int[] { 1, 2, 1000 };
 
         for (int len : lengths) {
             TupleDesc td = Utility.getTupleDesc(len);
             assertEquals(len, td.numFields());
         }
+        System.out.println("numFields test ok");
     }
 
     @Test public void testEquals() {
+        System.out.println("Start testEquals test");
         TupleDesc singleInt = new TupleDesc(new Type[]{Type.INT_TYPE});
         TupleDesc singleInt2 = new TupleDesc(new Type[]{Type.INT_TYPE});
         TupleDesc intString = new TupleDesc(new Type[]{Type.INT_TYPE, Type.STRING_TYPE});
@@ -171,6 +182,8 @@ public class TupleDescTest extends SimpleDbTestBase {
         assertNotEquals(intString, singleInt2);
         assertEquals(intString, intString2);
         assertEquals(intString2, intString);
+
+        System.out.println("TestEquals test ok");
     }
 
     /**
