@@ -36,17 +36,21 @@ public class CatalogTest extends SimpleDbTestBase {
     /**
      * Unit test for Catalog.getTupleDesc()
      */
+
     @Test public void getTupleDesc() {
+        System.out.println("Start getTupleDesc");
         TupleDesc expected = Utility.getTupleDesc(2);
         TupleDesc actual = Database.getCatalog().getTupleDesc(id1);
 
         assertEquals(expected, actual);
+        System.out.println("Pass getTupleDesc");
     }
 
     /**
      * Unit test for Catalog.getTableId()
      */
     @Test public void getTableId() {
+        System.out.println("Start getTableId");
         assertEquals(id2, Database.getCatalog().getTableId(name));
         assertEquals(id1, Database.getCatalog().getTableId(nameThisTestRun));
         
@@ -63,6 +67,7 @@ public class CatalogTest extends SimpleDbTestBase {
         } catch (NoSuchElementException e) {
             // Expected to get here
         }
+        System.out.println("Pass getTableId");
     }
 
     /**
@@ -70,11 +75,13 @@ public class CatalogTest extends SimpleDbTestBase {
      */
 
     @Test public void getDatabaseFile() {
+        System.out.println("Start getDatabaseFile");
         DbFile f = Database.getCatalog().getDatabaseFile(id1);
 
         // NOTE(ghuo): we try not to dig too deeply into the DbFile API here; we
         // rely on HeapFileTest for that. perform some basic checks.
         assertEquals(id1, f.getId());
+        System.out.println("Pass getDatabaseFile");
     }
     
     /**
