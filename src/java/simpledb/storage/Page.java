@@ -46,7 +46,7 @@ public interface Page {
    * @return A byte array correspond to the bytes of this page.
    */
 
-  byte[] getPageData();
+    byte[] getPageData();
 
     /** Provide a representation of this page before any modifications were made
         to it.  Used by recovery.

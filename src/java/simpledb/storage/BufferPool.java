@@ -1,14 +1,13 @@
 package simpledb.storage;
 
-import simpledb.common.Database;
-import simpledb.common.Permissions;
-import simpledb.common.DbException;
-import simpledb.common.DeadlockException;
+import simpledb.common.*;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -32,7 +31,8 @@ public class BufferPool {
     other classes. BufferPool should use the numPages argument to the
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
-
+    private ArrayList<Page> pages_;
+    private int maxPageNum_;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -40,6 +40,8 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
+        pages_ = new ArrayList<Page>(numPages);
+        maxPageNum_ = numPages;
     }
     
     public static int getPageSize() {
@@ -71,10 +73,25 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        //return null;
+        //首先寻找有没有符合要求的
+        for (Page page :pages_) {
+            if (page.getId().equals(pid)) {
+                return page;
+            }
+        }
+        //到了这里说明没有
+        int size = pages_.size();
+        if (size >= maxPageNum_) {
+            throw new DbException(String.format("The pages.size is %d,add new page error from getPage",size));
+        }
+        DbFile dbfile = Database.getCatalog().getDatabaseFile(pid.getTableId());
+        Page page = dbfile.readPage(pid);
+        pages_.add(page);
+        return page;
     }
 
     /**
