@@ -33,7 +33,7 @@ public class HeapPage implements Page {
      * The format of a HeapPage is a set of header bytes indicating
      * the slots of the page that are in use, some number of tuple slots.
      *  Specifically, the number of tuples is equal to: <p>
-     *          floor((BufferPool.getPageSize()*8) / (tuple size * 8 + 1))
+     *          floor((BufferPool.getPageSize()*8) / (tuple size * 8 + 1)) 其中这个+1表示的是bitmap额外的一个字节
      * <p> where tuple size is the size of tuples in this
      * database table, which can be determined via {@link Catalog#getTupleDesc}.
      * The number of 8-bit header words is equal to:
@@ -51,7 +51,7 @@ public class HeapPage implements Page {
         DataInputStream dis = new DataInputStream(new ByteArrayInputStream(data));
 
         // allocate and read the header slots of this page
-        header = new byte[getHeaderSize()];
+        header = new byte[getHeaderSize()]; //这个getHeaderSize怎么实现呢？？
         for (int i=0; i<header.length; i++)
             header[i] = dis.readByte();
         
@@ -73,8 +73,7 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {        
         // some code goes here
-        return 0;
-
+        return (BufferPool.getPageSize()*8) / (td.getSize() * 8 + 1);
     }
 
     /**
@@ -84,8 +83,12 @@ public class HeapPage implements Page {
     private int getHeaderSize() {        
         
         // some code goes here
-        return 0;
-                 
+        int num = numSlots / 8;
+        if (numSlots % 8 == 0 && numSlots != 0) {
+            return num;
+        } else {
+            return num + 1;
+        }
     }
     
     /** Return a view of this page before it was modified
@@ -118,7 +121,8 @@ public class HeapPage implements Page {
      */
     public HeapPageId getId() {
     // some code goes here
-    throw new UnsupportedOperationException("implement this");
+        //throw new UnsupportedOperationException("implement this");
+        return pid;
     }
 
     /**
@@ -286,17 +290,26 @@ public class HeapPage implements Page {
     /**
      * Returns the number of empty slots on this page.
      */
-    public int getNumEmptySlots() {
+    public int getNumEmptySlots() { //根据位图来判断呢？还是根据tuple呢？
         // some code goes here
-        return 0;
+        int cnt  = 0;
+        for (int i = 0;i < numSlots ; i ++) {
+            if (!isSlotUsed(i)) {
+                cnt ++;
+            }
+        }
+        return cnt;
     }
 
     /**
      * Returns true if associated slot on this page is filled.
      */
-    public boolean isSlotUsed(int i) {
+    public boolean isSlotUsed(int i) { //需要读取bitmap
         // some code goes here
-        return false;
+        int index = i / 8;
+        int offset = i % 8;
+        int bit = header[index] >> offset & 0x01;
+        return bit == 1;
     }
 
     /**
@@ -311,9 +324,15 @@ public class HeapPage implements Page {
      * @return an iterator over all tuples on this page (calling remove on this iterator throws an UnsupportedOperationException)
      * (note that this iterator shouldn't return tuples in empty slots!)
      */
-    public Iterator<Tuple> iterator() {
+    public Iterator<Tuple> iterator() {  //迭代器的实现怎么做？？
         // some code goes here
-        return null;
+        ArrayList<Tuple> tuplelist = new ArrayList<>();
+        for (int i = 0 ; i < numSlots; i ++) {
+            if (isSlotUsed(i)) {
+                tuplelist.add(tuples[i]);
+            }
+        }
+        return tuplelist.iterator();
     }
 
 }

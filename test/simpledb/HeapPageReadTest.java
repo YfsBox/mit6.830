@@ -122,7 +122,6 @@ public class HeapPageReadTest extends SimpleDbTestBase {
         for (int i = 20; i < 504; ++i)
             assertFalse(page.isSlotUsed(i));
     }
-
     /**
      * JUnit suite target
      */

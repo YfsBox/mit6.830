@@ -22,6 +22,7 @@ import java.util.*;
  */
 public class HeapFile implements DbFile {
 
+
     /**
      * Constructs a heap file backed by the specified file.
      * 
@@ -29,8 +30,40 @@ public class HeapFile implements DbFile {
      *            the file that stores the on-disk backing store for this heap
      *            file.
      */
+    private File file_;
+    private TupleDesc tupleDesc_;
+    private ArrayList<Page> pages_;
+    private int heapId_;
+
     public HeapFile(File f, TupleDesc td) {
         // some code goes here
+        file_ = f;
+        heapId_ = f.getAbsoluteFile().hashCode(); //用来进行唯一的标识
+        tupleDesc_ = td;
+        pages_ = new ArrayList<Page>();
+
+        long fileLen = f.length(),pagesize = BufferPool.getPageSize();
+        long pageCnt = fileLen / pagesize;
+        if (fileLen % pagesize != 0) {
+            pageCnt += 1;
+        }
+        try {
+            int offset = 0;
+            FileInputStream fi = new FileInputStream(f);
+            for (long i = 0;i < pageCnt; i ++) {
+                long readSize = BufferPool.getPageSize();
+                if (i == pageCnt - 1 && fileLen % pagesize != 0) {
+                    readSize = fileLen % pagesize;
+                }
+                byte[] data = new byte[(int) readSize];
+                //HeapPage page = new HeapPage(,data);
+                fi.read(data,offset,(int) readSize);
+                offset += readSize;
+            }
+        }catch (Exception e) {
+
+        }
+
     }
 
     /**
@@ -40,7 +73,7 @@ public class HeapFile implements DbFile {
      */
     public File getFile() {
         // some code goes here
-        return null;
+        return file_;
     }
 
     /**
@@ -54,7 +87,8 @@ public class HeapFile implements DbFile {
      */
     public int getId() {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        //throw new UnsupportedOperationException("implement this");
+        return heapId_;
     }
 
     /**
@@ -64,7 +98,8 @@ public class HeapFile implements DbFile {
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        throw new UnsupportedOperationException("implement this");
+        //throw new UnsupportedOperationException("implement this");
+        return tupleDesc_;
     }
 
     // see DbFile.java for javadocs
@@ -84,7 +119,7 @@ public class HeapFile implements DbFile {
      */
     public int numPages() {
         // some code goes here
-        return 0;
+        return pages_.size();
     }
 
     // see DbFile.java for javadocs
