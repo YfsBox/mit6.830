@@ -25,7 +25,7 @@ public class HeapFileIterator implements DbFileIterator{
 
     private Iterator<Tuple> getTupleIterator(int pgno) throws TransactionAbortedException,DbException {
         HeapPageId pgId = new HeapPageId(hpFile_.getId(),pgno);
-        Page page = Database.getBufferPool().getPage(tid_,pgId, Permissions.READ_ONLY);
+        Page page = Database.getBufferPool().getPage(tid_,pgId, Permissions.READ_ONLY); //这个地方应该和bufferpool直接交互
         HeapPage heapPage = (HeapPage) page;
         if (page == null) {
             System.out.println("The heapPage is null");

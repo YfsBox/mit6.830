@@ -70,11 +70,8 @@ public class RecordId implements Serializable {
         // some code goes here
         //throw new UnsupportedOperationException("implement this");
         //24,24,16
-        int high,mid,low;
-        high = pageId_.getPageNumber() << 40;
-        mid = (pageId_.getTableId() & 0xffffff) << 16;
-        low = tupleNo_ & 0xffff;
-        return high + mid + low;
+        String hashStr = String.format("%s%s%s",pageId_.getTableId(),pageId_.getPageNumber(),tupleNo_);
+        return hashStr.hashCode();
     }
 
 }
