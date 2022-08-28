@@ -52,7 +52,7 @@ public class Tuple implements Serializable { //表明Tuple元组是可以进行�
      */
     public RecordId getRecordId() {
         // some code goes here
-        return null;
+        return recordId_;
     }
 
     /**

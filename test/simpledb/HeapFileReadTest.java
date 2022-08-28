@@ -69,6 +69,7 @@ public class HeapFileReadTest extends SimpleDbTestBase {
     /**
      * Unit test for HeapFile.readPage()
      */
+
     @Test
     public void readPage() {
         HeapPageId pid = new HeapPageId(hf.getId(), 0);
@@ -124,6 +125,7 @@ public class HeapFileReadTest extends SimpleDbTestBase {
         // close twice is harmless
         it.close();
     }
+
 
     /**
      * JUnit suite target

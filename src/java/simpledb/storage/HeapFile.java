@@ -32,7 +32,6 @@ public class HeapFile implements DbFile {
      */
     private File file_;
     private TupleDesc tupleDesc_;
-    private ArrayList<Page> pages_;
     private int heapId_;
 
     public HeapFile(File f, TupleDesc td) {
@@ -40,30 +39,6 @@ public class HeapFile implements DbFile {
         file_ = f;
         heapId_ = f.getAbsoluteFile().hashCode(); //用来进行唯一的标识
         tupleDesc_ = td;
-        pages_ = new ArrayList<Page>();
-
-        long fileLen = f.length(),pagesize = BufferPool.getPageSize();
-        long pageCnt = fileLen / pagesize;
-        if (fileLen % pagesize != 0) {
-            pageCnt += 1;
-        }
-        try {
-            int offset = 0;
-            FileInputStream fi = new FileInputStream(f);
-            for (long i = 0;i < pageCnt; i ++) {
-                long readSize = BufferPool.getPageSize();
-                if (i == pageCnt - 1 && fileLen % pagesize != 0) {
-                    readSize = fileLen % pagesize;
-                }
-                byte[] data = new byte[(int) readSize];
-                //HeapPage page = new HeapPage(,data);
-                fi.read(data,offset,(int) readSize);
-                offset += readSize;
-            }
-        }catch (Exception e) {
-
-        }
-
     }
 
     /**
@@ -103,8 +78,23 @@ public class HeapFile implements DbFile {
     }
 
     // see DbFile.java for javadocs
-    public Page readPage(PageId pid) {
+    public Page readPage(PageId pid) { //从file里面提取出来相应的page
         // some code goes here
+        int tableId = pid.getTableId(),pgNo = pid.getPageNumber(),pgsize = BufferPool.getPageSize();
+        if ((long) (pgNo + 1) * pgsize > file_.length()) {
+            return null;
+        }
+        try {
+            FileInputStream fi = new FileInputStream(file_);
+            int offset = BufferPool.getPageSize() * pgNo;
+            byte[] data = new byte[pgsize];
+            fi.read(data,offset,pgsize);
+            HeapPageId hpId = new HeapPageId(tableId,pgNo);
+            HeapPage heapPage = new HeapPage(hpId,data);
+            return heapPage;
+        } catch (Exception e) {
+
+        }
         return null;
     }
 
@@ -117,9 +107,10 @@ public class HeapFile implements DbFile {
     /**
      * Returns the number of pages in this HeapFile.
      */
-    public int numPages() {
+    public int numPages() { //根据这个文件的大小计算出来即可
         // some code goes here
-        return pages_.size();
+        int num = (int) Math.floor(file_.length() * 1.0 / BufferPool.getPageSize());
+        return num;
     }
 
     // see DbFile.java for javadocs
@@ -141,8 +132,7 @@ public class HeapFile implements DbFile {
     // see DbFile.java for javadocs
     public DbFileIterator iterator(TransactionId tid) {
         // some code goes here
-        return null;
+        return new HeapFileIterator(this,tid);
     }
-
 }
 
