@@ -1,6 +1,8 @@
 package simpledb.storage;
 
+import simpledb.common.Database;
 import simpledb.common.DbException;
+import simpledb.common.Permissions;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -21,9 +23,9 @@ public class HeapFileIterator implements DbFileIterator{
         currPageNo_ = 0;
     }
 
-    private Iterator<Tuple> getTupleIterator(int pgno) {
+    private Iterator<Tuple> getTupleIterator(int pgno) throws TransactionAbortedException,DbException {
         HeapPageId pgId = new HeapPageId(hpFile_.getId(),pgno);
-        Page page = hpFile_.readPage(pgId);
+        Page page = Database.getBufferPool().getPage(tid_,pgId, Permissions.READ_ONLY);
         HeapPage heapPage = (HeapPage) page;
         if (page == null) {
             System.out.println("The heapPage is null");
