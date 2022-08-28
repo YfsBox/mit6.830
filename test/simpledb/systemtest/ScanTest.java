@@ -130,7 +130,8 @@ public class ScanTest extends SimpleDbTestBase {
 
         // Check each field for the appropriate tableAlias. prefix
         for (int i = 0; i < original.numFields(); i++) {
-           assertEquals(prefix + "." + original.getFieldName(i), prefixed.getFieldName(i));
+          assertEquals(prefix + "." + original.getFieldName(i),prefixed.getFieldName(i));
+           //System.out.println(String.format("%s and %s",original.getFieldName(i),prefixed.getFieldName(i)));
         }
     }
 

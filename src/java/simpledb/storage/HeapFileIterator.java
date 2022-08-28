@@ -25,6 +25,9 @@ public class HeapFileIterator implements DbFileIterator{
         HeapPageId pgId = new HeapPageId(hpFile_.getId(),pgno);
         Page page = hpFile_.readPage(pgId);
         HeapPage heapPage = (HeapPage) page;
+        if (page == null) {
+            System.out.println("The heapPage is null");
+        }
         return heapPage.iterator();
     }
 

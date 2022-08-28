@@ -81,19 +81,25 @@ public class HeapFile implements DbFile {
     public Page readPage(PageId pid) { //从file里面提取出来相应的page
         // some code goes here
         int tableId = pid.getTableId(),pgNo = pid.getPageNumber(),pgsize = BufferPool.getPageSize();
-        if ((long) (pgNo + 1) * pgsize > file_.length()) {
+        int fileLen = (int) file_.length();
+        //System.out.println(String.format("pid,tableId: %d,pgNo: %d,size: %d,pageSize: %d",tableId,pgNo,fileLen,pgsize));
+        if ((pgNo + 1) * pgsize > fileLen) {
+            //System.out.println(String.format("Over the length from readPage,%d,%d",(pgNo + 1)*pgsize,fileLen));
             return null;
         }
         try {
-            FileInputStream fi = new FileInputStream(file_);
+            RandomAccessFile raf = new RandomAccessFile(file_,"r");
             int offset = BufferPool.getPageSize() * pgNo;
+            raf.seek(offset);
             byte[] data = new byte[pgsize];
-            fi.read(data,offset,pgsize);
+            raf.read(data,0,pgsize);
             HeapPageId hpId = new HeapPageId(tableId,pgNo);
             HeapPage heapPage = new HeapPage(hpId,data);
+            raf.close();
             return heapPage;
         } catch (Exception e) {
-
+            //System.out.println();
+            e.printStackTrace();
         }
         return null;
     }
