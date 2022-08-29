@@ -42,7 +42,7 @@ public class HeapPageIdTest extends SimpleDbTestBase {
         // at least.
         pid = new HeapPageId(1, 1);
         code1 = pid.hashCode();
-        assertEquals(code1, pid.hashCode());
+        assertEquals(code1, pid.hashCode()); //同一个多次调用则一定相等
         assertEquals(code1, pid.hashCode());
 
         pid = new HeapPageId(2, 2);

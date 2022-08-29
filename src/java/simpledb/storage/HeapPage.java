@@ -80,15 +80,8 @@ public class HeapPage implements Page {
      * Computes the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      * @return the number of bytes in the header of a page in a HeapFile with each tuple occupying tupleSize bytes
      */
-    private int getHeaderSize() {        
-        
-        // some code goes here
-        int num = numSlots / 8;
-        if (numSlots % 8 == 0 && numSlots != 0) {
-            return num;
-        } else {
-            return num + 1;
-        }
+    private int getHeaderSize() {
+        return (int) Math.ceil(numSlots * 1.0 / 8.0);
     }
     
     /** Return a view of this page before it was modified

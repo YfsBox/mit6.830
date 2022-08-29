@@ -47,7 +47,7 @@ public class TupleTest extends SimpleDbTestBase {
     /**
      * Unit test for Tuple.getRecordId() and Tuple.setRecordId()
      */
-    /*
+
     @Test public void modifyRecordId() {
         System.out.println("Start modifyRecordId");
         Tuple tup1 = new Tuple(Utility.getTupleDesc(1));
@@ -64,7 +64,7 @@ public class TupleTest extends SimpleDbTestBase {
     			"but should pass when you do implement the RecordId class.");
 	}
         System.out.println("Pass modifyRecordId");
-    }*/
+    }
 
     /**
      * JUnit suite target

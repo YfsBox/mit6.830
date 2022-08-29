@@ -43,7 +43,7 @@ public class Tuple implements Serializable { //表明Tuple元组是可以进行�
      */
     public TupleDesc getTupleDesc() {
         // some code goes here
-        return new TupleDesc(desc_);
+        return desc_;
     }
 
     /**
