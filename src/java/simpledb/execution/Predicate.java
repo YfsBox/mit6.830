@@ -46,7 +46,9 @@ public class Predicate implements Serializable {
         }
 
     }
-    
+    private int field_;
+    private Op op_;
+    private Field operand_;
     /**
      * Constructor.
      * 
@@ -59,6 +61,9 @@ public class Predicate implements Serializable {
      */
     public Predicate(int field, Op op, Field operand) {
         // some code goes here
+        field_ = field;
+        op_ = op;
+        operand_ = operand;
     }
 
     /**
@@ -67,7 +72,7 @@ public class Predicate implements Serializable {
     public int getField()
     {
         // some code goes here
-        return -1;
+        return field_;
     }
 
     /**
@@ -76,7 +81,7 @@ public class Predicate implements Serializable {
     public Op getOp()
     {
         // some code goes here
-        return null;
+        return op_;
     }
     
     /**
@@ -85,7 +90,7 @@ public class Predicate implements Serializable {
     public Field getOperand()
     {
         // some code goes here
-        return null;
+        return operand_;
     }
     
     /**
@@ -100,7 +105,8 @@ public class Predicate implements Serializable {
      */
     public boolean filter(Tuple t) {
         // some code goes here
-        return false;
+        Field field_t = t.getField(field_);
+        return field_t.compare(op_,operand_); //operand_就是被比较的对象
     }
 
     /**
@@ -109,6 +115,7 @@ public class Predicate implements Serializable {
      */
     public String toString() {
         // some code goes here
-        return "";
+        String msg = String.format("f = %d op = %s operand = %s",field_,op_.toString(),operand_.toString());
+        return msg;
     }
 }
