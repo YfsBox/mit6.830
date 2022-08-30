@@ -110,6 +110,8 @@ public class StringAggregator implements Aggregator {
         return new StringAggregatorOpIterator(this);
     }
 
+
+
     public class StringAggregatorOpIterator implements OpIterator {
         private StringAggregator aggregator_;
         private Iterator<Field> gvalueIt_;
@@ -170,7 +172,6 @@ public class StringAggregator implements Aggregator {
             //return null;
             return aggregator_.desc_;
         }
-
     }
 
 }
