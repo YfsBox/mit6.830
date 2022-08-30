@@ -138,4 +138,8 @@ public class Tuple implements Serializable { //表明Tuple元组是可以进行�
         // some code goes here
         desc_ = new TupleDesc(td); //重新的深拷贝
     }
+
+    public void resetRecordId(PageId pid,int tupleno) {
+        recordId_ = new RecordId(pid,tupleno);
+    }
 }

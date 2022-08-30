@@ -26,6 +26,11 @@ public class RecordId implements Serializable {
         tupleNo_ = tupleno;
     }
 
+    public void resetRecordId(PageId pid,int tupleno) {
+        pageId_ = pid;
+        tupleNo_ = tupleno;
+    }
+
     /**
      * @return the tuple number this RecordId references.
      */

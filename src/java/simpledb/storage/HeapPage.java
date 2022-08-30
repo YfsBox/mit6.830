@@ -73,7 +73,7 @@ public class HeapPage implements Page {
     */
     private int getNumTuples() {        
         // some code goes here
-        return (BufferPool.getPageSize()*8) / (td.getSize() * 8 + 1);
+        return (int) Math.floor((BufferPool.getPageSize() * 8 * 1.0) / (td.getSize() * 8 + 1));
     }
 
     /**
@@ -248,6 +248,13 @@ public class HeapPage implements Page {
     public void deleteTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        PageId pageId = recordId.getPageId();
+        int tupleNo = recordId.getTupleNumber();
+        if (!pageId.equals(pid) || !isSlotUsed(tupleNo)) {
+            throw new DbException("the Tuple not in HeapPage or not SlotUsed");
+        }
+        markSlotUsed(tupleNo,false);
     }
 
     /**
@@ -260,6 +267,22 @@ public class HeapPage implements Page {
     public void insertTuple(Tuple t) throws DbException {
         // some code goes here
         // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        PageId pageId = recordId.getPageId();
+        TupleDesc tupleDesc = t.getTupleDesc();
+        int tupleNo = recordId.getTupleNumber();
+        if (getNumEmptySlots() == 0 || !tupleDesc.equals(td)) {
+            throw new DbException("cant insert tuple to HeapPage");
+        }
+        int k; //找出一个空闲位置
+        for (k = 0;k < numSlots ; k ++) {
+            if (!isSlotUsed(k)) {
+                break;
+            }
+        }
+        t.resetRecordId(pid,k);
+        tuples[k] = t;
+        markSlotUsed(k,true);
     }
 
     /**
@@ -311,6 +334,16 @@ public class HeapPage implements Page {
     private void markSlotUsed(int i, boolean value) {
         // some code goes here
         // not necessary for lab1
+        int index = i / 8;
+        int offset = i % 8;
+        int bit = 0x01;
+        bit = bit << offset;
+        if (!value) {
+            bit = ~bit;
+            header[index] &= bit;
+        } else {
+            header[index] |= bit;
+        }
     }
 
     /**
