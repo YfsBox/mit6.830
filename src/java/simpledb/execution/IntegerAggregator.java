@@ -124,7 +124,6 @@ public class IntegerAggregator implements Aggregator {
     public class IntegerAggregatorOpIterator implements OpIterator {
 
         private IntegerAggregator aggregator_;
-        private Iterator<IntField> avalueIt_;
         private Iterator<Field> gvalueIt_;
         private Field currGroup_;
 
@@ -132,7 +131,6 @@ public class IntegerAggregator implements Aggregator {
 
         public IntegerAggregatorOpIterator(IntegerAggregator iaggregator) {
             aggregator_ = iaggregator;
-            avalueIt_ = null;
             gvalueIt_ = null;
             currGroup_ = null;
         }
@@ -141,14 +139,12 @@ public class IntegerAggregator implements Aggregator {
         public void open() throws DbException, TransactionAbortedException {
             gvalueIt_ = aggregator_.GpMap_.keySet().iterator();
             currGroup_ = null;
-            avalueIt_ = null;
         }
 
         @Override
         public void close() {
             currGroup_ = null;
             gvalueIt_ = null;
-            avalueIt_ = null;
         }
 
         @Override
@@ -157,59 +153,67 @@ public class IntegerAggregator implements Aggregator {
             open();
         }
 
+        private IntField getValue(Field key) {
+            ArrayList<IntField> intlist = aggregator_.GpMap_.get(key);
+            //Iterator<IntField> intIt = aggregator_.GpMap_.get(key).iterator();
+            Op what = aggregator_.what_;
+            IntField intField;
+            if (what.equals(Op.COUNT)) {
+                intField = new IntField(intlist.size());
+            } else if (what.equals(Op.AVG)) {
+                int sum = 0;
+                for (IntField field: intlist) {
+                    sum += field.getValue();
+                }
+                intField = new IntField(sum / intlist.size());
+            } else if (what.equals(Op.SUM)) {
+                int sum = 0;
+                for (IntField field: intlist) {
+                    sum += field.getValue();
+                }
+                intField = new IntField(sum);
+            } else if (what.equals(Op.MIN)) {
+                int min = 0x0fffffff;
+                for (IntField field: intlist) {
+                    min = Integer.min(min,field.getValue());
+                }
+                intField = new IntField(min);
+            } else if (what.equals(Op.MAX)) {
+                int max = 0x80000000;
+                for (IntField field: intlist) {
+                    max = Integer.max(max,field.getValue());
+                }
+                intField = new IntField(max);
+            } else if (what.equals(Op.SC_AVG)) {
+                intField = new IntField(0); //暂且不做
 
-
+            } else /*if (what.equals(Op.SUM_COUNT)) */{//也就是对应的SUM_COUNT的情况
+                intField = new IntField(0); //暂且不做
+            }
+            return intField;
+        }
         @Override
         public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
+            Tuple tuple = null;
             if (aggregator_.gbfield_ == -1 && aggregator_.GpMap_.containsKey(null)) { //这个时候就只会固定在第一个null为key的里面
-                if (avalueIt_ == null) {
-                    avalueIt_ = aggregator_.GpMap_.get(null).iterator();
-                }
-                IntField intfield = avalueIt_.next(); //有hasnext保证下执行
-                Tuple tuple = new Tuple(aggregator_.desc_); //肯定是1个的
+                IntField intfield = getValue(null); //有hasnext保证下执行
+                tuple = new Tuple(aggregator_.desc_); //肯定是1个的
                 tuple.setField(0,intfield);
-                return tuple;
+
             } else {
                 IntField intField;
-                Tuple tuple = new Tuple(aggregator_.desc_);
-                if (currGroup_ == null && avalueIt_ == null) {
-                    currGroup_ = gvalueIt_.next();
-                    avalueIt_ = aggregator_.GpMap_.get(currGroup_).iterator();
-                    intField = avalueIt_.next();
-                } else {
-                    if (avalueIt_.hasNext()) {
-                        intField = avalueIt_.next();
-                    } else {
-                        currGroup_ = gvalueIt_.next(); //调用next的前提是hasnext
-                        avalueIt_ = aggregator_.GpMap_.get(currGroup_).iterator();
-                        intField = avalueIt_.next();
-                    }
-                }
+                tuple = new Tuple(aggregator_.desc_);
+                currGroup_ = gvalueIt_.next();
+                intField = getValue(currGroup_);
                 tuple.setField(0,currGroup_);
                 tuple.setField(1,intField);
-                return tuple;
             }
+            return tuple;
         }
 
         @Override
         public boolean hasNext() throws DbException, TransactionAbortedException {
-            if (aggregator_.gbfield_ == -1) {
-                if (avalueIt_ == null) {
-                    return aggregator_.GpMap_.containsKey(null);
-                } else {
-                    return avalueIt_.hasNext();
-                }
-            } else {
-                if (currGroup_ == null && avalueIt_ == null) {
-                    return gvalueIt_.hasNext();
-                } else {
-                    if (avalueIt_.hasNext()) {
-                        return true;
-                    } else {
-                        return gvalueIt_.hasNext();
-                    }
-                }
-            }
+            return gvalueIt_.hasNext();
         }
         @Override
         public TupleDesc getTupleDesc() {
