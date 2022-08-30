@@ -67,14 +67,14 @@ public class IntegerAggregator implements Aggregator {
 
                 names[0] = tupleDesc.getFieldName(gbfield_);
                 types[0] = tupleDesc.getFieldType(gbfield_);
-                names[1] = tupleDesc.getFieldName(afield_);
-                types[1] = tupleDesc.getFieldType(afield_);
+                names[1] = null;
+                types[1] = Type.INT_TYPE;
             } else {
                 names = new String[1];
                 types = new Type[1];
 
-                names[0] = tupleDesc.getFieldName(afield_);
-                types[0] = tupleDesc.getFieldType(afield_);
+                names[0] = null;
+                types[0] = Type.INT_TYPE;
             }
             desc_ = new TupleDesc(types,names);
         }
