@@ -196,16 +196,13 @@ public class IntegerAggregator implements Aggregator {
         @Override
         public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
             Tuple tuple = null;
+            tuple = new Tuple(aggregator_.desc_);
+            currGroup_ = gvalueIt_.next();
+            IntField intField = getValue(currGroup_);
             if (aggregator_.gbfield_ == -1 && aggregator_.GpMap_.containsKey(null)) { //这个时候就只会固定在第一个null为key的里面
-                IntField intfield = getValue(null); //有hasnext保证下执行
-                tuple = new Tuple(aggregator_.desc_); //肯定是1个的
-                tuple.setField(0,intfield);
+                tuple.setField(0,intField);
 
             } else {
-                IntField intField;
-                tuple = new Tuple(aggregator_.desc_);
-                currGroup_ = gvalueIt_.next();
-                intField = getValue(currGroup_);
                 tuple.setField(0,currGroup_);
                 tuple.setField(1,intField);
             }

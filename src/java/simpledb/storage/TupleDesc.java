@@ -112,7 +112,7 @@ public class TupleDesc implements Serializable { //这个函数中目前来看�
             ItermList_.add(newItem);
         }
         fieldNum_ = len;
-        PrintItemForTest();
+        //PrintItemForTest();
     }
 
     /**

@@ -139,12 +139,12 @@ public class Aggregate extends Operator {
     public void open() throws NoSuchElementException, DbException,
             TransactionAbortedException {
         // some code goes here
+        child_.open();
         if (opIt_ == null) {
             MergeToAggregator();
             opIt_ = aggregator_.iterator();
         }
         opIt_.open();
-        child_.open();
         super.open();
     }
 

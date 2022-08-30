@@ -144,18 +144,15 @@ public class StringAggregator implements Aggregator {
         @Override
         public Tuple next() throws DbException, TransactionAbortedException, NoSuchElementException {
             Tuple tuple = null;
-            if (aggregator_.gbfield_ == -1 && aggregator_.GpMap_.containsKey(null)) { //这个时候就只会固定在第一个null为key的里面
-                IntField intfield = new IntField(aggregator_.GpMap_.get(null).size()); //有hasnext保证下执行
-                tuple = new Tuple(aggregator_.desc_); //肯定是1个的
-                tuple.setField(0,intfield);
+            tuple = new Tuple(aggregator_.desc_);
+            currGroup_ = gvalueIt_.next();
+            IntField intfield = new IntField(aggregator_.GpMap_.get(currGroup_).size());
 
+            if (aggregator_.gbfield_ == -1 && aggregator_.GpMap_.containsKey(null)) { //这个时候就只会固定在第一个null为key的里面
+                tuple.setField(0,intfield);
             } else {
-                IntField intField;
-                tuple = new Tuple(aggregator_.desc_);
-                currGroup_ = gvalueIt_.next();
-                intField = new IntField(aggregator_.GpMap_.get(currGroup_).size());
                 tuple.setField(0,currGroup_);
-                tuple.setField(1,intField);
+                tuple.setField(1,intfield);
             }
             return tuple;
         }
