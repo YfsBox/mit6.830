@@ -6,9 +6,7 @@ import simpledb.transaction.TransactionId;
 
 import java.io.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -35,6 +33,7 @@ public class BufferPool {
     //private ArrayList<Page> pages_;
     private HashMap<Integer,Page> pages_;
     private int maxPageNum_;
+    private LinkedList<Integer> fifoQueue_;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -44,6 +43,7 @@ public class BufferPool {
         // some code goes here
         pages_ = new HashMap<Integer,Page>();
         maxPageNum_ = numPages;
+        fifoQueue_ = new LinkedList<Integer>();
     }
     
     public static int getPageSize() {
@@ -87,11 +87,13 @@ public class BufferPool {
         //到了这里说明没有
         int size = pages_.size();
         if (size >= maxPageNum_) {
-            throw new DbException(String.format("The pages.size is %d,add new page error from getPage",size));
+            //throw new DbException(String.format("The pages.size is %d,add new page error from getPage",size));
+            evictPage();
         }
         DbFile dbfile = Database.getCatalog().getDatabaseFile(pid.getTableId());
         Page page = dbfile.readPage(pid);
         pages_.put(hashcode,page);
+        fifoQueue_.add(hashcode);
         return page;
     }
 
@@ -150,8 +152,8 @@ public class BufferPool {
      * that future requests see up-to-date pages. 
      *
      * @param tid the transaction adding the tuple
-     * @param tableId the table to add the tuple to
-     * @param t the tuple to add
+     *
+     *
      */
     private void updatePagePool(List<Page> pagelist,TransactionId tid) {
         int size = pagelist.size();
@@ -212,7 +214,16 @@ public class BufferPool {
     public synchronized void flushAllPages() throws IOException {
         // some code goes here
         // not necessary for lab1
-
+        Iterator<Integer> keysetIt = fifoQueue_.iterator();
+        while (keysetIt.hasNext()) {
+            int key = keysetIt.next();
+            HeapPage page = (HeapPage) pages_.get(key);
+            PageId pageId = page.getId();
+            HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(pageId.getTableId());
+            if (page.isDirty() != null) { //说明dirty
+                file.writePage(page);
+            }
+        }
     }
 
     /** Remove the specific page id from the buffer pool.
@@ -235,6 +246,15 @@ public class BufferPool {
     private synchronized  void flushPage(PageId pid) throws IOException {
         // some code goes here
         // not necessary for lab1
+        int tableId = pid.getTableId();
+        HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableId);
+        int hashCode = pid.hashCode();
+        if (pages_.containsKey(hashCode)) {
+            HeapPage page = (HeapPage) pages_.get(hashCode);
+            if (page.isDirty() != null) {
+                file.writePage(page);
+            }
+        } //写入
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -251,6 +271,15 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+        int hashcode = fifoQueue_.pop();
+        HeapPage page = (HeapPage) pages_.get(hashcode);
+        HeapPageId pageId = page.getId();
+        try {
+            flushPage(pageId);
+        } catch (Exception e) {
+            System.out.printf("flushPage error in evictPage from pagepool");
+        }
+        pages_.remove(hashcode); //移除
     }
 
 }
