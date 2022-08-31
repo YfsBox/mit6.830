@@ -129,7 +129,7 @@ public class Catalog {
                 break;
             }
         }
-        if (i == tableNum_) { //确定是找不到的情况
+        if (i == -1) { //确定是找不到的情况
             throw new NoSuchElementException(String.format("Not such %s tableid from getTupleDesc",tableid));
         }
         return tupleDescs_.get(i);
@@ -150,7 +150,7 @@ public class Catalog {
                 break;
             }
         }
-        if (i == tableNum_) { //确定是找不到的情况
+        if (i == -1) { //确定是找不到的情况
             throw new NoSuchElementException(String.format("Not such %s tableid from getDatabaseFile",tableid));
         }
         return tableDescs_.get(i).dbFile_;
@@ -165,7 +165,7 @@ public class Catalog {
                 break;
             }
         }
-        if (i == tableNum_) { //确定是找不到的情况
+        if (i == -1) { //确定是找不到的情况
             throw new NoSuchElementException(String.format("Not such %s tableid from getDatabaseFile",tableid));
         }
         return tableDescs_.get(i).pkeyFieldId_;
@@ -185,7 +185,7 @@ public class Catalog {
                 break;
             }
         }
-        if (i == tableNum_) { //确定是找不到的情况
+        if (i == -1) { //确定是找不到的情况
             throw new NoSuchElementException(String.format("Not such %s tableid from getDatabaseFile",id));
         }
         return tableDescs_.get(i).name_; //得到表名

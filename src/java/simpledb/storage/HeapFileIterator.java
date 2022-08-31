@@ -49,8 +49,11 @@ public class HeapFileIterator implements DbFileIterator{
         if (tupleIterator_.hasNext()) {
             return true;
         }
-        if (currPageNo_ + 1 < hpFile_.numPages()) {
-            return getTupleIterator(currPageNo_ + 1).hasNext();
+        while (currPageNo_ + 1 < hpFile_.numPages()) {
+            if (getTupleIterator(currPageNo_ + 1).hasNext()) {
+                return true;
+            }
+            currPageNo_ += 1;
         }
         return false;
     }

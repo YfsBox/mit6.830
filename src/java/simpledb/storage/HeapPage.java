@@ -28,6 +28,9 @@ public class HeapPage implements Page {
     byte[] oldData;
     private final Byte oldDataLock= (byte) 0;
 
+    private TransactionId lastTid_;
+    private boolean isdirty_;
+
     /**
      * Create a HeapPage from a set of bytes of data read from disk.
      * The format of a HeapPage is a set of header bytes indicating
@@ -64,7 +67,8 @@ public class HeapPage implements Page {
             e.printStackTrace();
         }
         dis.close();
-
+        lastTid_ = null;
+        isdirty_ = false;
         setBeforeImage();
     }
 
@@ -271,7 +275,7 @@ public class HeapPage implements Page {
         PageId pageId = recordId.getPageId();
         TupleDesc tupleDesc = t.getTupleDesc();
         int tupleNo = recordId.getTupleNumber();
-        if (getNumEmptySlots() == 0 || !tupleDesc.equals(td)) {
+        if (getNumEmptySlots() == 0 || !tupleDesc.equals(td)) { //外部调用时需要进行检查
             throw new DbException("cant insert tuple to HeapPage");
         }
         int k; //找出一个空闲位置
@@ -292,6 +296,10 @@ public class HeapPage implements Page {
     public void markDirty(boolean dirty, TransactionId tid) {
         // some code goes here
 	// not necessary for lab1
+        isdirty_ = dirty;
+        if (dirty) {
+            lastTid_ = tid;
+        }
     }
 
     /**
@@ -300,7 +308,12 @@ public class HeapPage implements Page {
     public TransactionId isDirty() {
         // some code goes here
 	// Not necessary for lab1
-        return null;      
+        //return lastTid_;
+        if (isdirty_) {
+            return lastTid_;
+        } else {
+            return null;
+        }
     }
 
     /**
