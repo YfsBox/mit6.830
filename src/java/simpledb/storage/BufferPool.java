@@ -153,10 +153,32 @@ public class BufferPool {
      * @param tableId the table to add the tuple to
      * @param t the tuple to add
      */
+    private void updatePagePool(List<Page> pagelist,TransactionId tid) {
+        int size = pagelist.size();
+        for (int i = 0 ; i < size; i ++) {
+            HeapPage page = (HeapPage) pagelist.get(i);
+            page.markDirty(true,tid);
+            int hashcode = page.pid.hashCode(); //注意是要得出pid的hashcode
+            if (pages_.containsKey(hashcode)) {
+                Page oldPage = pages_.get(hashcode);
+                oldPage = page; //更新
+            } else {
+                //暂且先不考虑超出的情况
+                pages_.put(hashcode,page);
+            }
+        }
+    }
+
+
     public void insertTuple(TransactionId tid, int tableId, Tuple t)
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        HeapFile hpfile = (HeapFile) file;
+        List<Page> pagelist = hpfile.insertTuple(tid,t);
+        updatePagePool(pagelist,tid);
+
     }
 
     /**
@@ -176,6 +198,10 @@ public class BufferPool {
         throws DbException, IOException, TransactionAbortedException {
         // some code goes here
         // not necessary for lab1
+        DbFile file = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
+        HeapFile hpfile = (HeapFile) file;
+        List<Page> pagelist = hpfile.deleteTuple(tid,t);
+        updatePagePool(pagelist,tid);
     }
 
     /**

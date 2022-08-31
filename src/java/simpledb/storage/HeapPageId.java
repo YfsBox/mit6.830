@@ -43,8 +43,11 @@ public class HeapPageId implements PageId {
     public int hashCode() {
         // some code goes here
         //throw new UnsupportedOperationException("implement this");
-        String hashStr = String.format("%s%s",pgNo_,tableId_);
+
+        String hashStr = String.format("%d%d",tableId_,pgNo_);
+        //System.out.printf("The hashStr: %s and hashcode is %s\n",hashStr,hashStr.hashCode());
         return hashStr.hashCode();
+
     }
 
     /**
