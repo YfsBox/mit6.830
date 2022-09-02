@@ -2,8 +2,12 @@ package simpledb.optimizer;
 
 import simpledb.execution.Predicate;
 
+import java.lang.reflect.Array;
+import java.util.Arrays;
+
 /** A class to represent a fixed-width histogram over a single integer-based field.
  */
+//这个类用来表示一个直方图
 public class IntHistogram {
 
     /**
@@ -22,8 +26,44 @@ public class IntHistogram {
      * @param min The minimum integer value that will ever be passed to this class for histogramming
      * @param max The maximum integer value that will ever be passed to this class for histogramming
      */
+    private int bucketsNum_;
+    private int min_;
+    private int max_;
+    private Integer[] hightArray_;
+    private int mutiple_;
+    private int nTups_;
+
     public IntHistogram(int buckets, int min, int max) {
     	// some code goes here
+        bucketsNum_ = buckets;
+        min_ = min;
+        max_ = max;
+
+        nTups_ = 0;
+
+        hightArray_ = new Integer[bucketsNum_ + 1];
+        Arrays.fill(hightArray_,0);
+    }
+
+    private int getGap() {
+        return max_ - min_ + 1;
+    }
+
+    private double getWidth() {
+        return (max_ * 1.0 - min_ * 1.0 + 1) / bucketsNum_;
+    }
+
+    private int getIndex(int value) {
+        double width = getWidth();
+        int index = (int) ((value * 1.0  - min_) / width);
+        return index;
+    }
+
+    private double getOffset(int value) {
+        double width = getWidth();
+        int index = getIndex(value);
+        double offset = value - (min_ + index * width);
+        return offset;
     }
 
     /**
@@ -32,6 +72,11 @@ public class IntHistogram {
      */
     public void addValue(int v) {
     	// some code goes here
+        if (v < min_ || v > max_) {
+            return;
+        }
+        hightArray_[getIndex(v)] += 1;
+        nTups_ += 1;
     }
 
     /**
@@ -44,10 +89,47 @@ public class IntHistogram {
      * @param v Value
      * @return Predicted selectivity of this particular operator and value
      */
-    public double estimateSelectivity(Predicate.Op op, int v) {
 
+
+    private double getLessSum(int v) {
+
+        if (v <= min_) {
+            return 0;
+        }
+
+        if (v > max_) {
+            return 1.0;
+        }
+
+        double sum = 0,width = getWidth(),offset = getOffset(v);
+        int index = getIndex(v);
+        for(int i = 0; i < index; i ++) {
+            sum += (hightArray_[i] / (double) nTups_);
+        }
+        double cnt = hightArray_[index]/ (double) nTups_ / width;
+
+        sum += cnt * offset;
+        return sum;
+    }
+
+    public double estimateSelectivity(Predicate.Op op, int v) {
+        String opStr = op.toString();
+        double sum = 0;
     	// some code goes here
-        return -1.0;
+        if (opStr.equals("=")) {
+            sum = getLessSum(v + 1) - getLessSum(v);
+        } else if (opStr.equals("<")) {
+            sum = getLessSum(v);
+        } else if (opStr.equals(">")) {
+            sum = 1.0 - getLessSum(v + 1);
+        } else if (opStr.equals("<=")) {
+            sum = getLessSum(v + 1);
+        } else if (opStr.equals(">=")) {
+            sum = 1.0 - getLessSum(v);
+        } else if (opStr.equals("<>")) {
+            sum = 1.0 - getLessSum(v + 1) + getLessSum(v);
+        }
+        return sum;
     }
     
     /**
@@ -61,7 +143,11 @@ public class IntHistogram {
     public double avgSelectivity()
     {
         // some code goes here
-        return 1.0;
+        double sum = 0.0;
+        for (int i = 0 ; i < bucketsNum_; i ++) {
+            sum += hightArray_[i];
+        }
+        return sum / nTups_;
     }
     
     /**
@@ -69,6 +155,8 @@ public class IntHistogram {
      */
     public String toString() {
         // some code goes here
+        /*return String.format("IntHistgram(buckets=%d, min=%d, max=%d",
+                buckets.length, min, max);*/
         return null;
     }
 }
