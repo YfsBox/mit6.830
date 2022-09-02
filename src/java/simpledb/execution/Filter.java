@@ -56,7 +56,9 @@ public class Filter extends Operator {
 
     public void rewind() throws DbException, TransactionAbortedException {
         // some code goes here
-        child_.rewind();
+        //child_.rewind();
+        close();
+        open();
     }
 
     /**

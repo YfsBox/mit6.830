@@ -155,7 +155,7 @@ public class BufferPool {
      *
      *
      */
-    private void updatePagePool(List<Page> pagelist,TransactionId tid) {
+    private void updatePagePool(List<Page> pagelist,TransactionId tid) throws DbException{
         int size = pagelist.size();
         for (int i = 0 ; i < size; i ++) {
             HeapPage page = (HeapPage) pagelist.get(i);
@@ -166,6 +166,9 @@ public class BufferPool {
                 oldPage = page; //更新
             } else {
                 //暂且先不考虑超出的情况
+                if(pages_.size() >= maxPageNum_)  {
+                    evictPage();
+                }
                 pages_.put(hashcode,page);
             }
         }
@@ -180,7 +183,6 @@ public class BufferPool {
         HeapFile hpfile = (HeapFile) file;
         List<Page> pagelist = hpfile.insertTuple(tid,t);
         updatePagePool(pagelist,tid);
-
     }
 
     /**
