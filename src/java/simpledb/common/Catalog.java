@@ -141,6 +141,7 @@ public class Catalog {
      * @param tableid The id of the table, as specified by the DbFile.getId()
      *     function passed to addTable
      */
+
     public DbFile getDatabaseFile(int tableid) throws NoSuchElementException {
         // some code goes here
         int i;

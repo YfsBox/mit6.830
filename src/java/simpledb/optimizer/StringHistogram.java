@@ -18,6 +18,9 @@ public class StringHistogram {
      * @param buckets
      *            the number of buckets
      */
+    public static String MAXSTRING = "zzzz";
+    public static String MINSTRING = "";
+
     public StringHistogram(int buckets) {
         hist = new IntHistogram(buckets, minVal(), maxVal());
     }

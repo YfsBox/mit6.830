@@ -328,6 +328,10 @@ public class HeapPage implements Page {
         return cnt;
     }
 
+    public int getNumUsedSlots() {
+        return getNumTuples() - getNumEmptySlots();
+    }
+
     /**
      * Returns true if associated slot on this page is filled.
      */

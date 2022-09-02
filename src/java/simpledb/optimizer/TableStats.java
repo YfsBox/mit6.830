@@ -1,5 +1,6 @@
 package simpledb.optimizer;
 
+import jdk.nashorn.internal.runtime.regexp.joni.constants.StringType;
 import simpledb.common.Database;
 import simpledb.common.Type;
 import simpledb.execution.Predicate;
@@ -21,13 +22,13 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class TableStats {
 
-    private static final ConcurrentMap<String, TableStats> statsMap = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, TableStats> statsMap = new ConcurrentHashMap<>(); //相当于全局的私有的
 
     static final int IOCOSTPERPAGE = 1000;
 
     public static TableStats getTableStats(String tablename) {
         return statsMap.get(tablename);
-    }
+    } //根据tablename获取对应的元数据
 
     public static void setTableStats(String tablename, TableStats stats) {
         statsMap.put(tablename, stats);
@@ -68,6 +69,58 @@ public class TableStats {
      */
     static final int NUM_HIST_BINS = 100;
 
+    private int tableId_;
+    private HeapFile tableFile_;
+    private TupleDesc tableDesc_;
+    private int ioCostPerPage_;
+    private int tupleNum_;
+    private HashMap<Integer,Field> maxValues_;
+    private HashMap<Integer,Field> minValues_;
+    private HashMap<Integer,IntHistogram> intHisMap_;
+    private HashMap<Integer,StringHistogram> strHisMap_;
+
+
+
+    private void UpdateValuesMap(Tuple tuple) {
+        for (int k = 0; k < tableDesc_.numFields() ; k ++) {
+            Field field = tuple.getField(k);
+            if (field.getType().equals(Type.INT_TYPE)) {
+                if (field.compare(Predicate.Op.LESS_THAN,minValues_.get(k))) {
+                    minValues_.put(k,field);
+                }
+                if (field.compare(Predicate.Op.GREATER_THAN,maxValues_.get(k))) {
+                    maxValues_.put(k,field);
+                }
+            }
+        }
+    }
+
+    private void InitHisMap() {
+        for (int i = 0 ;i < tableDesc_.numFields(); i ++) {
+            Type fieldType = tableDesc_.getFieldType(i);
+            if (fieldType.equals(Type.INT_TYPE)) {
+                IntField maxField = (IntField) maxValues_.get(i),minField = (IntField) minValues_.get(i);
+                IntHistogram ih = new IntHistogram(NUM_HIST_BINS,minField.getValue(),maxField.getValue());
+                intHisMap_.put(i,ih);
+            } else if (fieldType.equals(Type.STRING_TYPE)) {
+                strHisMap_.put(i,new StringHistogram(NUM_HIST_BINS));
+            }
+        }
+    }
+
+    private void AddTupleToHis(Tuple tuple) {
+        for (int i = 0; i < tableDesc_.numFields() ; i ++) {
+            Field field = tuple.getField(i);
+            if (field.getType().equals(Type.INT_TYPE)) {
+                IntField intField = (IntField) field;
+                intHisMap_.get(i).addValue(intField.getValue());
+            } else {
+                StringField stringField = (StringField) field;
+                strHisMap_.get(i).addValue(stringField.getValue());
+            }
+        }
+    }
+
     /**
      * Create a new TableStats object, that keeps track of statistics on each
      * column of a table
@@ -87,6 +140,56 @@ public class TableStats {
         // necessarily have to (for example) do everything
         // in a single scan of the table.
         // some code goes here
+        tupleNum_ = 0;
+        tableId_ = tableid;
+        minValues_ = new HashMap<Integer,Field>();
+        maxValues_ = new HashMap<Integer,Field>();
+        intHisMap_ = new HashMap<Integer,IntHistogram>();
+        strHisMap_ = new HashMap<Integer,StringHistogram>();
+
+        tableDesc_ = Database.getCatalog().getTupleDesc(tableid); //初始化Map
+
+        for (int i = 0; i < tableDesc_.numFields() ; i ++) {
+            Type fieldType = tableDesc_.getFieldType(i);
+            if (fieldType.equals(Type.INT_TYPE)) {
+                minValues_.put(i,new IntField(Integer.MAX_VALUE));
+                maxValues_.put(i,new IntField(Integer.MIN_VALUE));
+            } else {
+                minValues_.put(i,new StringField(null,Type.STRING_LEN));
+                minValues_.put(i,new StringField(null,Type.STRING_LEN));
+            }
+        }
+
+
+        HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(tableid);
+        int pageNum = file.numPages();
+        Iterator<Tuple> tupleIt;
+        for(int i = 0; i < pageNum; i ++) {
+            HeapPageId pageId = new HeapPageId(tableid,i);
+            HeapPage page = (HeapPage) file.readPage(pageId);
+
+            tupleIt = page.iterator();
+            while (tupleIt.hasNext()) {
+                tupleNum_ += 1;
+                Tuple tuple = tupleIt.next();
+                UpdateValuesMap(tuple);
+
+            }
+        }
+        InitHisMap();
+        ioCostPerPage_ = ioCostPerPage;
+        tableFile_ = file;
+
+        for(int i = 0; i < pageNum; i ++) {
+            HeapPageId pageId = new HeapPageId(tableid,i);
+            HeapPage page = (HeapPage) file.readPage(pageId);
+
+            tupleIt = page.iterator();
+            while (tupleIt.hasNext()) {
+                Tuple tuple = tupleIt.next();
+                AddTupleToHis(tuple);
+            }
+        }
     }
 
     /**
@@ -150,7 +253,15 @@ public class TableStats {
      */
     public double estimateSelectivity(int field, Predicate.Op op, Field constant) {
         // some code goes here
-        return 1.0;
+        if (constant.getType().equals(Type.INT_TYPE)) {
+            IntField intField = (IntField) constant;
+            IntHistogram ih = intHisMap_.get(field);
+            return ih.estimateSelectivity(op,intField.getValue());
+        } else {
+            StringField stringField = (StringField) constant;
+            StringHistogram strh = strHisMap_.get(field);
+            return strh.estimateSelectivity(op,stringField.getValue());
+        }
     }
 
     /**
@@ -158,7 +269,9 @@ public class TableStats {
      * */
     public int totalTuples() {
         // some code goes here
-        return 0;
+        return tupleNum_;
+
+
     }
 
 }
