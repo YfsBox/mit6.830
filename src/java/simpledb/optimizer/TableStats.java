@@ -206,7 +206,9 @@ public class TableStats {
      */
     public double estimateScanCost() {
         // some code goes here
-        return 0;
+        //return 0;
+        int pageNum = tableFile_.numPages();
+        return pageNum * ioCostPerPage_;
     }
 
     /**
@@ -220,7 +222,8 @@ public class TableStats {
      */
     public int estimateTableCardinality(double selectivityFactor) {
         // some code goes here
-        return 0;
+        //return 0;
+        return (int) (selectivityFactor * tupleNum_);
     }
 
     /**
