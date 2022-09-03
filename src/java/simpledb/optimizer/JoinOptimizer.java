@@ -178,12 +178,12 @@ public class JoinOptimizer {
 
         int result = 0;
         if (joinOp.equals(Predicate.Op.EQUALS)) {
-            if (t1pkey && t2pkey) {
-                result = Integer.max(card1,card2);
-            } else if (!t1pkey && t2pkey) {
+            if (!t1pkey && t2pkey) {
                 result = card1;
             } else if (t1pkey && !t2pkey) {
                 result = card2;
+            } else {
+                result = Integer.max(card1,card2);
             }
         /*} else if (joinOp.equals(Predicate.Op.NOT_EQUALS)) {
             if (t1pkey && !t2pkey) {
@@ -196,7 +196,7 @@ public class JoinOptimizer {
                 result = card1 * card2 - Math.max(result, card2);
             }*/
         } else {
-            result = (int) 0.3 * card1 * card2;
+            result = card1 * card2 * 3 / 10;
         }
         if (result <= 0) {
             result = 1;
