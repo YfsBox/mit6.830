@@ -252,7 +252,36 @@ public class JoinOptimizer {
 
         // some code goes here
         //Replace the following
-        return joins;
+        int n = joins.size();
+        PlanCache planCache = new PlanCache();
+        for (int i = 1; i <= n; i ++) {//从长度为1到长度为n
+            Set<Set<LogicalJoinNode>> subsets = enumerateSubsets(joins,i);
+            Iterator<Set<LogicalJoinNode>> subsetIt = subsets.iterator();
+            while (subsetIt.hasNext()){ //内部分别对应一段集合
+                //构造集合
+                double optcost = Double.MAX_VALUE;
+                List<LogicalJoinNode> bestList = null;
+                int card = 0;
+                Set<LogicalJoinNode> nodeSet = subsetIt.next();
+                Iterator<LogicalJoinNode> setIt = nodeSet.iterator();
+                while (setIt.hasNext()) {
+                    LogicalJoinNode node = setIt.next();
+                    CostCard csa = computeCostAndCardOfSubplan(stats,filterSelectivities,node,nodeSet,optcost,planCache);
+                    if (csa != null ) {
+                        optcost = csa.cost;
+                        bestList = csa.plan;
+                        card = csa.card;
+                    }
+                }
+                planCache.addPlan(nodeSet,optcost,card,bestList);
+            }
+        }
+        Set<LogicalJoinNode> allSet = enumerateSubsets(joins,n).iterator().next();
+        List<LogicalJoinNode> resultList = planCache.getOrder(allSet);
+        if (explain) {
+            printJoins(resultList,planCache,stats,filterSelectivities);
+        }
+        return resultList;
     }
 
     // ===================== Private Methods =================================
