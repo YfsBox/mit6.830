@@ -130,7 +130,8 @@ public class JoinOptimizer {
             // HINT: You may need to use the variable "j" if you implemented
             // a join algorithm that's more complicated than a basic
             // nested-loops join.
-            return cost1 + card1 * cost2 + card1 * card2;
+            double cost = cost1 + card1 * cost2 + card1 * card2;
+            return cost;
         }
     }
 
@@ -184,6 +185,16 @@ public class JoinOptimizer {
             } else if (t1pkey && !t2pkey) {
                 result = card2;
             }
+        /*} else if (joinOp.equals(Predicate.Op.NOT_EQUALS)) {
+            if (t1pkey && !t2pkey) {
+                result = card1 * card2 - card2;
+            } else if (!t1pkey && t2pkey) {
+                result = card1 * card2 - card1;
+            } else if (t1pkey && t2pkey) {
+                result = card1 * card2 - Math.min(card1, card2);
+            } else {
+                result = card1 * card2 - Math.max(result, card2);
+            }*/
         } else {
             result = (int) 0.3 * card1 * card2;
         }
@@ -245,6 +256,7 @@ public class JoinOptimizer {
      *             when stats or filter selectivities is missing a table in the
      *             join, or or when another internal error occurs
      */
+
     public List<LogicalJoinNode> orderJoins(
             Map<String, TableStats> stats,
             Map<String, Double> filterSelectivities, boolean explain)
@@ -276,6 +288,7 @@ public class JoinOptimizer {
                 planCache.addPlan(nodeSet,optcost,card,bestList);
             }
         }
+        //Set<Set<LogicalJoinNode>> nset = enumerateSubsets(joins,n);
         Set<LogicalJoinNode> allSet = enumerateSubsets(joins,n).iterator().next();
         List<LogicalJoinNode> resultList = planCache.getOrder(allSet);
         if (explain) {

@@ -207,8 +207,8 @@ public class TableStats {
     public double estimateScanCost() {
         // some code goes here
         //return 0;
-        int pageNum = tableFile_.numPages();
-        return pageNum * ioCostPerPage_;
+        double pageNum = tableFile_.numPages();
+        return 2.0 * pageNum * ioCostPerPage_;
     }
 
     /**

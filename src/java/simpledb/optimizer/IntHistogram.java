@@ -30,7 +30,6 @@ public class IntHistogram {
     private int min_;
     private int max_;
     private Integer[] hightArray_;
-    private int mutiple_;
     private int nTups_;
 
     public IntHistogram(int buckets, int min, int max) {
@@ -41,7 +40,7 @@ public class IntHistogram {
 
         nTups_ = 0;
 
-        hightArray_ = new Integer[bucketsNum_ + 1];
+        hightArray_ = new Integer[bucketsNum_];
         Arrays.fill(hightArray_,0);
     }
 
@@ -54,6 +53,12 @@ public class IntHistogram {
     }
 
     private int getIndex(int value) {
+        if (value <= min_) {
+            return 0;
+        }
+        if (value >= max_) {
+            return bucketsNum_ - 1;
+        }
         double width = getWidth();
         int index = (int) ((value * 1.0  - min_) / width);
         return index;
