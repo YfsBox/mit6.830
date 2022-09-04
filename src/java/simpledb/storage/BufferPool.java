@@ -8,6 +8,8 @@ import java.io.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * BufferPool manages the reading and writing of pages into memory from
@@ -44,6 +46,7 @@ public class BufferPool {
         pages_ = new HashMap<Integer,Page>();
         maxPageNum_ = numPages;
         fifoQueue_ = new LinkedList<Integer>();
+
     }
     
     public static int getPageSize() {
@@ -82,7 +85,8 @@ public class BufferPool {
         //首先寻找有没有符合要求的
         int hashcode = pid.hashCode();
         if (pages_.containsKey(hashcode)) {
-            return pages_.get(hashcode);
+            Page result = pages_.get(hashcode);
+            return result;
         }
         //到了这里说明没有
         int size = pages_.size();
@@ -106,7 +110,7 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param pid the ID of the page to unlock
      */
-    public  void unsafeReleasePage(TransactionId tid, PageId pid) {
+    public void unsafeReleasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for lab1|lab2
     }
@@ -122,7 +126,7 @@ public class BufferPool {
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
-    public boolean holdsLock(TransactionId tid, PageId p) {
+    public boolean holdsLock(TransactionId tid, PageId p) { //如果是共享锁该怎么判断
         // some code goes here
         // not necessary for lab1|lab2
         return false;
@@ -279,6 +283,7 @@ public class BufferPool {
         try {
             flushPage(pageId);
         } catch (Exception e) {
+            //这里需要释放锁吗??
             System.out.printf("flushPage error in evictPage from pagepool");
         }
         pages_.remove(hashcode); //移除
