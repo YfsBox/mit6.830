@@ -1,6 +1,7 @@
 package simpledb.storage;
 
 import simpledb.common.*;
+import simpledb.transaction.LockManager;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -36,6 +37,7 @@ public class BufferPool {
     private HashMap<Integer,Page> pages_;
     private int maxPageNum_;
     private LinkedList<Integer> fifoQueue_;
+    private LockManager lockManager_;
     /**
      * Creates a BufferPool that caches up to numPages pages.
      *
@@ -46,7 +48,7 @@ public class BufferPool {
         pages_ = new HashMap<Integer,Page>();
         maxPageNum_ = numPages;
         fifoQueue_ = new LinkedList<Integer>();
-
+        lockManager_ = new LockManager();
     }
     
     public static int getPageSize() {
@@ -83,6 +85,9 @@ public class BufferPool {
         // some code goes here
         //return null;
         //首先寻找有没有符合要求的
+        long requestSeq = lockManager_.AddRequest(pid,tid,perm);
+        int cnt = 0;
+        while (!lockManager_.AcquireLock(pid,tid,perm,requestSeq));
         int hashcode = pid.hashCode();
         if (pages_.containsKey(hashcode)) {
             Page result = pages_.get(hashcode);
@@ -113,6 +118,7 @@ public class BufferPool {
     public void unsafeReleasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for lab1|lab2
+        lockManager_.ReleaseLock(pid,tid);
     }
 
     /**
@@ -129,7 +135,7 @@ public class BufferPool {
     public boolean holdsLock(TransactionId tid, PageId p) { //如果是共享锁该怎么判断
         // some code goes here
         // not necessary for lab1|lab2
-        return false;
+        return lockManager_.IsHolding(p,tid);
     }
 
     /**

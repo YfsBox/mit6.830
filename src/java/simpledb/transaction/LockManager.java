@@ -4,6 +4,8 @@ import simpledb.common.Permissions;
 import simpledb.storage.PageId;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 
 public class LockManager {
@@ -45,10 +47,16 @@ public class LockManager {
     public class LockState {
         private LockType lockType_;
         private TransactionId tid_; //设置读锁对应的只能是null
+        private int shardCnt_;
 
         public LockState(LockType locktype,TransactionId tid) {
             lockType_ = locktype;
             tid_ = tid;
+            if (locktype.equals(LockType.SHARED_TYPE)) {
+                shardCnt_ = 1;
+            } else {
+                shardCnt_ = 0;
+            }
         }
 
         public LockState() {
@@ -69,27 +77,51 @@ public class LockManager {
         public void setLockType(LockType lockType) {
             lockType_ = lockType;
         }
-
-        public boolean canAcquire(LockType lockType) {
+        private void updateState(LockType lockType,TransactionId tid) {
+            lockType_ = lockType;
+            tid_ = tid;
+        }
+        public boolean canAcquire(LockType lockType,TransactionId tid) {
+            boolean result = false;
             if (lockType_.equals(LockType.NULL_TYPE)) {
-                return true;
+                if (lockType.equals(LockType.SHARED_TYPE)) {
+                    shardCnt_ = 1;
+                } else {
+                    shardCnt_ = 0;
+                }
+                updateState(lockType,tid);
+                result = true;
             } else if (lockType_.equals(LockType.SHARED_TYPE)) {
-                return lockType.equals(LockType.SHARED_TYPE);
+                if (lockType.equals(lockType_)) {
+                    if (!tid.equals(tid_)) {
+                        shardCnt_ += 1;
+                    }
+                    updateState(lockType,tid);
+                    result = true;
+                } else {
+                    if (tid.equals(tid_) && shardCnt_ == 1) {
+                        shardCnt_ = 0;
+                        updateState(lockType,tid);
+                        result = true;
+                    } else {
+                        result = false;
+                    }
+                }
             } else if (lockType_.equals(LockType.EXCLUSIVE_TYPE)) {
-                return false;
+                result = tid_.equals(tid); //这个时候不需要变
             }
-            return false;
+            return result;
         }
 
     }
 
-    private HashMap<Integer,LinkedList<LockRequest>> lockTable_;
-    private HashMap<Integer,LockState> lockStates_;
+    private ConcurrentMap<Integer,LinkedList<LockRequest>> lockTable_;
+    private ConcurrentMap<Integer,LockState> lockStates_;
 
 
     public LockManager() {
-        lockTable_ = new HashMap<Integer,LinkedList<LockRequest>>();
-        lockStates_ = new HashMap<Integer,LockState>();
+        lockTable_ = new ConcurrentHashMap<Integer,LinkedList<LockRequest>>();
+        lockStates_ = new ConcurrentHashMap<Integer,LockState>();
     }
 
     private LockType perm2LockType(Permissions perm) {
@@ -108,7 +140,7 @@ public class LockManager {
         LockType lockType = perm2LockType(perm);
         if (!lockTable_.containsKey(hashcode)) {
             lockTable_.put(hashcode,new LinkedList<LockRequest>());
-            lockStates_.put(hashcode,new LockState(lockType,tid));
+            lockStates_.put(hashcode,new LockState());
         }
         Random random = new Random();
         long seqno = random.nextLong();
@@ -122,13 +154,10 @@ public class LockManager {
         LockType lockType = perm2LockType(perm);
         LockState state = lockStates_.get(hashcode);
 
-        boolean canAcquire = state.canAcquire(lockType);
+        boolean canAcquire = state.canAcquire(lockType,tid);
         if (!canAcquire) {
             return false;
         } else { //其中包含了null,也就是没有锁占用的情况
-            state.setLockType(lockType);
-            state.setTid(tid);
-
             Iterator<LockRequest> requestIt = lockTable_.get(hashcode).iterator();
             while (requestIt.hasNext()) {
                 LockRequest request = requestIt.next();
@@ -143,14 +172,35 @@ public class LockManager {
         }
     }
 
-    public synchronized boolean ReleaseLock(PageId pageId,TransactionId tid) {
-
-        return false;
+    public synchronized void ReleaseLock(PageId pageId,TransactionId tid) {
+        int hashcode = pageId.hashCode();
+        LockType currType = lockStates_.get(hashcode).getLockType();
+        TransactionId currTid = lockStates_.get(hashcode).getTid();
+        if (lockTable_.containsKey(hashcode)) {
+            Iterator<LockRequest> requestIterator = lockTable_.get(hashcode).iterator();
+            while (requestIterator.hasNext()) {
+                LockRequest request = requestIterator.next();
+                if (request.getTid().equals(tid)) {
+                    if (request.getLockType().equals(currType)) {
+                        lockStates_.get(hashcode).setTid(null);
+                        lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
+                    }
+                    requestIterator.remove();//移除这一项
+                }
+            }
+        }
     }
 
     public synchronized boolean ReleaseAllLocks(TransactionId tid) {
-
         return false;
+    }
+
+    public synchronized boolean IsHolding(PageId pageId,TransactionId tid) {
+        int hashcode = pageId.hashCode();
+        if (!lockStates_.containsKey(hashcode)) {
+            return false;
+        }
+        return lockStates_.get(hashcode).tid_.equals(tid);
     }
 
 
