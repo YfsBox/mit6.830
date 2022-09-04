@@ -97,11 +97,9 @@ public class IntHistogram {
 
 
     private double getLessSum(int v) {
-
         if (v <= min_) {
             return 0;
         }
-
         if (v > max_) {
             return 1.0;
         }

@@ -80,7 +80,6 @@ public class TableStats {
     private HashMap<Integer,StringHistogram> strHisMap_;
 
 
-
     private void UpdateValuesMap(Tuple tuple) {
         for (int k = 0; k < tableDesc_.numFields() ; k ++) {
             Field field = tuple.getField(k);
