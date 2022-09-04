@@ -172,10 +172,9 @@ public class LockManager {
         }
     }
 
-    public synchronized void ReleaseLock(PageId pageId,TransactionId tid) {
-        int hashcode = pageId.hashCode();
+    public synchronized void ReleaseLock(int pageHash,TransactionId tid) {
+        int hashcode = pageHash;
         LockType currType = lockStates_.get(hashcode).getLockType();
-        TransactionId currTid = lockStates_.get(hashcode).getTid();
         if (lockTable_.containsKey(hashcode)) {
             Iterator<LockRequest> requestIterator = lockTable_.get(hashcode).iterator();
             while (requestIterator.hasNext()) {
@@ -191,8 +190,13 @@ public class LockManager {
         }
     }
 
-    public synchronized boolean ReleaseAllLocks(TransactionId tid) {
-        return false;
+    public synchronized void ReleaseAllLocks(TransactionId tid) {
+        //return false;
+        Iterator<Integer> it = lockTable_.keySet().iterator();
+        while (it.hasNext()) {
+            int hash = it.next();
+            ReleaseLock(hash,tid);
+        }
     }
 
     public synchronized boolean IsHolding(PageId pageId,TransactionId tid) {

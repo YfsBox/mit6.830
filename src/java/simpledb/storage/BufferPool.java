@@ -118,7 +118,7 @@ public class BufferPool {
     public void unsafeReleasePage(TransactionId tid, PageId pid) {
         // some code goes here
         // not necessary for lab1|lab2
-        lockManager_.ReleaseLock(pid,tid);
+        lockManager_.ReleaseLock(pid.hashCode(),tid);
     }
 
     /**
@@ -129,6 +129,7 @@ public class BufferPool {
     public void transactionComplete(TransactionId tid) {
         // some code goes here
         // not necessary for lab1|lab2
+        transactionComplete(tid,true);
     }
 
     /** Return true if the specified transaction has a lock on the specified page */
@@ -145,9 +146,25 @@ public class BufferPool {
      * @param tid the ID of the transaction requesting the unlock
      * @param commit a flag indicating whether we should commit or abort
      */
+
+
     public void transactionComplete(TransactionId tid, boolean commit) {
         // some code goes here
         // not necessary for lab1|lab2
+        if (commit) {
+            try {
+                flushPages(tid);
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }
+        } else {
+            /*try {
+                RecoverPages(tid);
+            } catch (IOException ioe) {
+                ioe.printStackTrace();
+            }*/
+        }
+        lockManager_.ReleaseAllLocks(tid);
     }
 
     /**
@@ -269,11 +286,43 @@ public class BufferPool {
         } //写入
     }
 
+    private synchronized void RecoverPages(TransactionId tid) throws IOException {
+        Iterator<Page> pageIt = pages_.values().iterator();
+        while (pageIt.hasNext()) {
+            Page page =  pageIt.next();
+            if (tid.equals(page.isDirty())) { //只要等于tid就写回
+                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+                try {
+                    HeapPage hpage = (HeapPage) page;
+                    hpage.setBeforeImage();
+                    file.writePage(hpage);
+                } catch (IOException e) {
+                    System.out.println("The flush page error in flushForTid");
+                    e.printStackTrace();
+                }
+            }
+        }
+
+    }
+
     /** Write all pages of the specified transaction to disk.
      */
     public synchronized  void flushPages(TransactionId tid) throws IOException {
         // some code goes here
         // not necessary for lab1|lab2
+        Iterator<Page> pageIt = pages_.values().iterator();
+        while (pageIt.hasNext()) {
+            Page page =  pageIt.next();
+            if (tid.equals(page.isDirty())) { //只要等于tid就写回
+                DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
+                try {
+                    file.writePage(page);
+                } catch (IOException e) {
+                    System.out.println("The flush page error in flushForTid");
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
     /**
@@ -283,6 +332,7 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
+        /*
         int hashcode = fifoQueue_.pop();
         HeapPage page = (HeapPage) pages_.get(hashcode);
         HeapPageId pageId = page.getId();
@@ -293,6 +343,19 @@ public class BufferPool {
             System.out.printf("flushPage error in evictPage from pagepool");
         }
         pages_.remove(hashcode); //移除
+
+         */
+        Iterator<Integer> fifoIterator = fifoQueue_.iterator();
+        while (fifoIterator.hasNext()) {
+            int hash = fifoIterator.next();
+            HeapPage page = (HeapPage) pages_.get(hash);
+            if (page.isDirty() == null) {
+                fifoIterator.remove();
+                pages_.remove(hash);
+                return;
+            }
+        }
+        throw new DbException("no undirty page to evict");
     }
 
 }
