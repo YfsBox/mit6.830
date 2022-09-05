@@ -2,6 +2,7 @@ package simpledb.storage;
 
 import simpledb.common.*;
 import simpledb.transaction.LockManager;
+import simpledb.transaction.Transaction;
 import simpledb.transaction.TransactionAbortedException;
 import simpledb.transaction.TransactionId;
 
@@ -26,6 +27,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class BufferPool {
     /** Bytes per page, including header. */
     private static final int DEFAULT_PAGE_SIZE = 4096;
+    private static final int MAX_TRYACQUIRE_NUM = 50000;
+    private static final long TIMEOUT = 2000;
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
     
@@ -83,11 +86,15 @@ public class BufferPool {
     public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        //return null;
         //首先寻找有没有符合要求的
         long requestSeq = lockManager_.AddRequest(pid,tid,perm);
-        int cnt = 0;
-        while (!lockManager_.AcquireLock(pid,tid,perm,requestSeq));
+        long start = System.currentTimeMillis();
+        while (!lockManager_.AcquireLock(pid,tid,perm,requestSeq)){
+            long now = System.currentTimeMillis();
+            if (now - start > TIMEOUT) {
+                throw new TransactionAbortedException();
+            }
+        }
         int hashcode = pid.hashCode();
         if (pages_.containsKey(hashcode)) {
             Page result = pages_.get(hashcode);

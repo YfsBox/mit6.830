@@ -92,10 +92,13 @@ public class TransactionTest extends SimpleDbTestBase {
         }
 
         public void run() {
+            //System.out.printf("%d running\n",Thread.currentThread().getId());
+            int cnt = 0;
             try {
                 // Try to increment the value until we manage to successfully commit
                 while (true) {
                     // Wait for all threads to be ready
+                    //cnt += 1;
                     latch.await();
                     Transaction tr = new Transaction();
                     try {
@@ -148,6 +151,7 @@ public class TransactionTest extends SimpleDbTestBase {
                         //System.out.println("thread " + tr.getId() + " killed");
                         // give someone else a chance: abort the transaction
                         tr.transactionComplete(true);
+                        //System.out.printf("Thread %d has retry\n",Thread.currentThread().getId());
                         latch.stillParticipating();
                     }
                 }
@@ -163,6 +167,7 @@ public class TransactionTest extends SimpleDbTestBase {
                 throw new RuntimeException(e);
             }
             completed = true;
+            //System.out.printf("the cnt is %d\n",cnt);
         }
     }
     

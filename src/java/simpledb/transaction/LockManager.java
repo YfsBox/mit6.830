@@ -207,5 +207,10 @@ public class LockManager {
         return lockStates_.get(hashcode).tid_.equals(tid);
     }
 
+    public synchronized TransactionId getHoldingTid(PageId pageId) {
+        int hash = pageId.hashCode();
+        return lockStates_.get(hash).tid_;
+    }
+
 
 }
