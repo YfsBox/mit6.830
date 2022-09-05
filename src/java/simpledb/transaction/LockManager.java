@@ -17,13 +17,12 @@ public class LockManager {
     public class LockRequest {
         private LockType lockType_;
         private TransactionId tid_;
-        private boolean isWaiting_;
         private long seqno_;
 
         public LockRequest(LockType locktype,TransactionId tid,long seqno) {
             lockType_ = locktype;
             tid_ = tid;
-            isWaiting_ = true; //初始化时都处于等待状态
+            //isWaiting_ = true; //初始化时都处于等待状态
             seqno_ = seqno;
         }
 
@@ -39,25 +38,12 @@ public class LockManager {
             return seqno_;
         }
 
-        public void setWaiting_(boolean isWaiting) {
-            isWaiting_ = isWaiting;
-        }
     }
 
     public class LockState {
         private LockType lockType_;
         private TransactionId tid_; //设置读锁对应的只能是null
         private int shardCnt_;
-
-        public LockState(LockType locktype,TransactionId tid) {
-            lockType_ = locktype;
-            tid_ = tid;
-            if (locktype.equals(LockType.SHARED_TYPE)) {
-                shardCnt_ = 1;
-            } else {
-                shardCnt_ = 0;
-            }
-        }
 
         public LockState() {
             lockType_ = LockType.NULL_TYPE;
@@ -158,17 +144,18 @@ public class LockManager {
         if (!canAcquire) {
             return false;
         } else { //其中包含了null,也就是没有锁占用的情况
+            boolean isfound = false;
             Iterator<LockRequest> requestIt = lockTable_.get(hashcode).iterator();
             while (requestIt.hasNext()) {
                 LockRequest request = requestIt.next();
                 long seq = request.getSeqno();
                 if (seq == seqno) {
-                    request.setWaiting_(false); //取消等待
+                    //request.setWaiting_(false); //取消等待
+                    isfound = true;
                     break;
                 }
             }
-            return true;
-            //找到该请求,借助一个随机生成的序列号可好??
+            return isfound;
         }
     }
 
@@ -191,7 +178,6 @@ public class LockManager {
     }
 
     public synchronized void ReleaseAllLocks(TransactionId tid) {
-        //return false;
         Iterator<Integer> it = lockTable_.keySet().iterator();
         while (it.hasNext()) {
             int hash = it.next();
