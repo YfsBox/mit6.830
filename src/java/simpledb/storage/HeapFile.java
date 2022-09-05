@@ -147,9 +147,8 @@ public class HeapFile implements DbFile {
             }
         }
         if (i >= pageNum) { //需要增加新的页,前面的已经写满了,这个地方由于没有经过getPage获得锁就进行了写,所以需要考虑加锁
-            byte[] data = new byte[BufferPool.getPageSize()];
             HeapPageId heapPageId = new HeapPageId(heapId_,i);
-            HeapPage newPgae = new HeapPage(heapPageId,data);
+            HeapPage newPgae = new HeapPage(heapPageId,HeapPage.createEmptyPageData());
             newPgae.insertTuple(t);
             writePage(newPgae);
             newPgae = (HeapPage) Database.getBufferPool().getPage(tid,heapPageId,Permissions.READ_ONLY);

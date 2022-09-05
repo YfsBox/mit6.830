@@ -110,6 +110,7 @@ public class HeapPage implements Page {
         }
     }
 
+
     /**
      * @return the PageId associated with this page.
      */
@@ -255,6 +256,7 @@ public class HeapPage implements Page {
         if (!pageId.equals(pid) || !isSlotUsed(tupleNo)) {
             throw new DbException("the Tuple not in HeapPage or not SlotUsed");
         }
+        setBeforeImage();
         markSlotUsed(tupleNo,false);
     }
 
@@ -279,6 +281,7 @@ public class HeapPage implements Page {
                 break;
             }
         }
+        setBeforeImage();
         t.resetRecordId(pid,k);
         tuples[k] = t;
         markSlotUsed(k,true);

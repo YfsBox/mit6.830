@@ -158,11 +158,11 @@ public class BufferPool {
                 ioe.printStackTrace();
             }
         } else {
-            /*try {
+            try {
                 RecoverPages(tid);
             } catch (IOException ioe) {
                 ioe.printStackTrace();
-            }*/
+            }
         }
         lockManager_.ReleaseAllLocks(tid);
     }
@@ -293,9 +293,10 @@ public class BufferPool {
             if (tid.equals(page.isDirty())) { //只要等于tid就写回
                 DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
                 try {
-                    HeapPage hpage = (HeapPage) page;
-                    hpage.setBeforeImage();
+                    int hashcode = page.getId().hashCode();
+                    HeapPage hpage = (HeapPage) page.getBeforeImage();
                     file.writePage(hpage);
+                    pages_.put(hashcode,hpage);
                 } catch (IOException e) {
                     System.out.println("The flush page error in flushForTid");
                     e.printStackTrace();
