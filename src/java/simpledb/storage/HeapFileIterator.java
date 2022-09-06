@@ -42,10 +42,6 @@ public class HeapFileIterator implements DbFileIterator{
 
     @Override
     public boolean hasNext() throws DbException, TransactionAbortedException {
-        //return false;
-        /*if(tupleIterator_ == null) {
-            return false;
-        }*/
         if (tupleIterator_ != null && tupleIterator_.hasNext()) {
             return true;
         }

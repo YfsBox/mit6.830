@@ -162,12 +162,13 @@ public class LockManager {
     public synchronized void ReleaseLock(int pageHash,TransactionId tid) {
         int hashcode = pageHash;
         LockType currType = lockStates_.get(hashcode).getLockType();
+        TransactionId currTid = lockStates_.get(hashcode).getTid();
         if (lockTable_.containsKey(hashcode)) {
             Iterator<LockRequest> requestIterator = lockTable_.get(hashcode).iterator();
             while (requestIterator.hasNext()) {
                 LockRequest request = requestIterator.next();
                 if (request.getTid().equals(tid)) {
-                    if (request.getLockType().equals(currType)) {
+                    if (request.getLockType().equals(currType) && tid.equals(currTid)) {
                         lockStates_.get(hashcode).setTid(null);
                         lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
                     }
