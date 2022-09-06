@@ -226,25 +226,21 @@ public class BTreeFile implements DbFile {
 					throws DbException, TransactionAbortedException {
 		// some code goes here
 		try {
-			BTreePageId pageId;
-			int pidteg = pid.pgcateg();
-			if (pidteg == BTreePageId.ROOT_PTR) {
-				BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
-				pageId = root.getHeaderId();
-			} else {
-				pageId = pid;
-			}
+			BTreePageId pageId = pid;
 			while (pageId.pgcateg() != BTreePageId.LEAF) {
 				Page page = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
 				int pgcatag = pageId.pgcateg();
-				if (pgcatag == BTreePageId.HEADER) {
+				if (pgcatag == BTreePageId.ROOT_PTR) {
+					BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
+					pageId = root.getHeaderId();
+				}
+				else if (pgcatag == BTreePageId.HEADER) {
 					BTreeHeaderPage headerPage = (BTreeHeaderPage) page;
 					BTreePageId preId = ((BTreeHeaderPage) page).getPrevPageId();
 					BTreePageId nextId = ((BTreeHeaderPage) page).getNextPageId();
 					pageId = getPageIdFromHeader(tid,dirtypages,preId,nextId,f);
 				} else if (pgcatag == BTreePageId.INTERNAL) {
 					Iterator<BTreeEntry> it = ((BTreeInternalPage) page).iterator();
-					pageId = null;
 					BTreeEntry entry = null;
 					boolean isfound = false;
 					while (it.hasNext()) {
