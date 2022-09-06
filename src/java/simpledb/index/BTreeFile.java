@@ -225,10 +225,7 @@ public class BTreeFile implements DbFile {
                                        Field f)
 					throws DbException, TransactionAbortedException {
 		// some code goes here
-        //BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
 		try {
-			/*root = getRootPtrPage(tid,dirtypages);
-			BTreePageId pageId = root.getHeaderId();*/
 			BTreePageId pageId;
 			int pidteg = pid.pgcateg();
 			if (pidteg == BTreePageId.ROOT_PTR) {
@@ -237,7 +234,7 @@ public class BTreeFile implements DbFile {
 			} else {
 				pageId = pid;
 			}
-			while (pageId != null) {
+			while (pageId.pgcateg() != BTreePageId.LEAF) {
 				Page page = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
 				int pgcatag = pageId.pgcateg();
 				if (pgcatag == BTreePageId.HEADER) {
@@ -262,19 +259,9 @@ public class BTreeFile implements DbFile {
 					if (!isfound && entry != null) {
 						pageId = entry.getRightChild();
 					}
-				} else { //BTreeLeafPage
-					/*Iterator<Tuple> it = ((BTreeLeafPage) page).iterator();
-					while (it.hasNext()) {
-						Tuple tuple = it.next();
-						Field field = tuple.getField(keyField);
-						if (f == null) {
-							page = getPage(tid,dirtypages,pageId,perm);
-							return (BTreeLeafPage) page;
-						}
-					}*/
-					return (BTreeLeafPage) getPage(tid,dirtypages,pageId,perm);
 				}
 			}
+			return (BTreeLeafPage) getPage(tid,dirtypages,pageId,perm);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
