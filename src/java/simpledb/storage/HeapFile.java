@@ -136,13 +136,13 @@ public class HeapFile implements DbFile {
         int pageNum = numPages(),i;
         for (i = 0; i <pageNum; i ++) {
             HeapPageId pageId = new HeapPageId(heapId_,i);
-            HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid,pageId,Permissions.READ_WRITE);
+            HeapPage page = (HeapPage) Database.getBufferPool().getPage(tid,pageId,Permissions.READ_ONLY);
             if (page.getNumEmptySlots() > 0) {
+                page = (HeapPage) Database.getBufferPool().getPage(tid,pageId,Permissions.READ_WRITE);
                 page.insertTuple(t);
                 result = page;
                 break;
             } else {
-                //这种情况,可以直接释放掉
                 Database.getBufferPool().unsafeReleasePage(tid,pageId);//将这个锁释放掉
             }
         }

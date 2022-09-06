@@ -63,6 +63,9 @@ public class LockManager {
         public void setLockType(LockType lockType) {
             lockType_ = lockType;
         }
+        public void setShardCnt(int cnt) {
+            shardCnt_ = cnt;
+        }
         private void updateState(LockType lockType,TransactionId tid) {
             lockType_ = lockType;
             tid_ = tid;
@@ -168,9 +171,17 @@ public class LockManager {
             while (requestIterator.hasNext()) {
                 LockRequest request = requestIterator.next();
                 if (request.getTid().equals(tid)) {
-                    if (request.getLockType().equals(currType) && tid.equals(currTid)) {
+                    if (currType.equals(LockType.EXCLUSIVE_TYPE) && tid.equals(currTid)) {
                         lockStates_.get(hashcode).setTid(null);
                         lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
+                    } else if (currType.equals(LockType.SHARED_TYPE)) { //通常情况下,当前为共享锁的话
+                        int shardCnt = lockStates_.get(hashcode).shardCnt_;
+                        if (shardCnt == 1) {
+                            lockStates_.get(hashcode).setTid(null);
+                            lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
+                        } else {
+                            lockStates_.get(hashcode).setShardCnt(shardCnt - 1);
+                        }
                     }
                     requestIterator.remove();//移除这一项
                 }
