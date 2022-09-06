@@ -25,7 +25,7 @@ public abstract class BTreePage implements Page {
 
 	protected final BTreePageId pid;
 	protected final TupleDesc td;
-	protected final int keyField;
+	protected final int keyField;  //提供给索引的key
 
 	protected int parent; // parent is always internal node or 0 for root node
 	protected byte[] oldData;

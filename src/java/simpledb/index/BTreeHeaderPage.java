@@ -35,7 +35,7 @@ public class BTreeHeaderPage implements Page {
 
 	byte[] oldData;
 	private final Byte oldDataLock= (byte) 0;
-
+//header中并没有实际的树
 	/**
 	 * Create a BTreeHeaderPage from a set of bytes of data read from disk.
 	 * The format of a BTreeHeaderPage is two pointers to the next and previous

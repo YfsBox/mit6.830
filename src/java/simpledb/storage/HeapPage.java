@@ -313,7 +313,6 @@ public class HeapPage implements Page {
             return null;
         }
     }
-
     /**
      * Returns the number of empty slots on this page.
      */

@@ -310,7 +310,6 @@ public class BufferPool {
                 }
             }
         }
-
     }
 
     /** Write all pages of the specified transaction to disk.
@@ -340,19 +339,6 @@ public class BufferPool {
     private synchronized  void evictPage() throws DbException {
         // some code goes here
         // not necessary for lab1
-        /*
-        int hashcode = fifoQueue_.pop();
-        HeapPage page = (HeapPage) pages_.get(hashcode);
-        HeapPageId pageId = page.getId();
-        try {
-            flushPage(pageId);
-        } catch (Exception e) {
-            //这里需要释放锁吗??
-            System.out.printf("flushPage error in evictPage from pagepool");
-        }
-        pages_.remove(hashcode); //移除
-
-         */
         Iterator<Integer> fifoIterator = fifoQueue_.iterator();
         while (fifoIterator.hasNext()) {
             int hash = fifoIterator.next();

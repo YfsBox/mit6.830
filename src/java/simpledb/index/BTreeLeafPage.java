@@ -23,7 +23,7 @@ public class BTreeLeafPage extends BTreePage {
 	private final byte[] header;
 	private final Tuple[] tuples;
 	private final int numSlots;
-	
+	//leftSibling是两个指针,就是该BTreeLeafPage相邻Page的指针
 	private int leftSibling; // leaf node or 0
 	private int rightSibling; // leaf node or 0
 
@@ -523,6 +523,7 @@ public class BTreeLeafPage extends BTreePage {
 /**
  * Helper class that implements the Java Iterator for tuples on a BTreeLeafPage.
  */
+//这个迭代的是一个个Tuple
 class BTreeLeafPageIterator implements Iterator<Tuple> {
 	int curTuple = 0;
 	Tuple nextToReturn = null;

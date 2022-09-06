@@ -46,6 +46,7 @@ public class BTreeFile implements DbFile {
 		this.tableid = f.getAbsoluteFile().hashCode();
 		this.keyField = key;
 		this.td = td;
+
 	}
 
 	/**
@@ -184,11 +185,100 @@ public class BTreeFile implements DbFile {
 	 * @return the left-most leaf page possibly containing the key field f
 	 * 
 	 */
+	private BTreePageId getPageIdFromPreOrNext(TransactionId tid,Map<PageId, Page> dirtypages,BTreePageId pageId,Field f) throws
+			DbException, TransactionAbortedException{
+		Page prePage = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
+		int pretag = pageId.pgcateg(),nexttag = pageId.pgcateg();
+		if (pretag == BTreePageId.INTERNAL) {
+			Iterator<BTreeEntry> it = ((BTreeInternalPage) prePage).iterator();
+			while (it.hasNext()) {
+				BTreeEntry entry = it.next();
+				Field field = entry.getKey();
+				if (field.compare(Op.GREATER_THAN_OR_EQ,f)) {
+					return pageId;
+				}
+			}
+		} else if (nexttag == BTreePageId.LEAF) {
+			Iterator<Tuple> it = ((BTreeLeafPage) prePage).iterator();
+			while (it.hasNext()) {
+				Tuple tuple = it.next();
+				if (tuple.getField(this.keyField).equals(f)) {
+					return pageId;
+				}
+			}
+		}
+		return null;
+	}
+
+	private BTreePageId getPageIdFromHeader(TransactionId tid,Map<PageId, Page> dirtypages,BTreePageId preid,
+												BTreePageId nextid,Field f) throws DbException, TransactionAbortedException{
+		if (f == null || getPageIdFromPreOrNext(tid,dirtypages,preid,f) != null) {
+			return preid;
+		} else if (getPageIdFromPreOrNext(tid,dirtypages,nextid,f) != null) {
+			return nextid;
+		}
+		return null;
+	}
+
+
 	private BTreeLeafPage findLeafPage(TransactionId tid, Map<PageId, Page> dirtypages, BTreePageId pid, Permissions perm,
                                        Field f)
 					throws DbException, TransactionAbortedException {
 		// some code goes here
-        return null;
+        //BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
+		try {
+			/*root = getRootPtrPage(tid,dirtypages);
+			BTreePageId pageId = root.getHeaderId();*/
+			BTreePageId pageId;
+			int pidteg = pid.pgcateg();
+			if (pidteg == BTreePageId.ROOT_PTR) {
+				BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
+				pageId = root.getHeaderId();
+			} else {
+				pageId = pid;
+			}
+			while (pageId != null) {
+				Page page = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
+				int pgcatag = pageId.pgcateg();
+				if (pgcatag == BTreePageId.HEADER) {
+					BTreeHeaderPage headerPage = (BTreeHeaderPage) page;
+					BTreePageId preId = ((BTreeHeaderPage) page).getPrevPageId();
+					BTreePageId nextId = ((BTreeHeaderPage) page).getNextPageId();
+					pageId = getPageIdFromHeader(tid,dirtypages,preId,nextId,f);
+				} else if (pgcatag == BTreePageId.INTERNAL) {
+					Iterator<BTreeEntry> it = ((BTreeInternalPage) page).iterator();
+					pageId = null;
+					BTreeEntry entry = null;
+					boolean isfound = false;
+					while (it.hasNext()) {
+						entry = it.next();
+						Field field = entry.getKey();
+						if (f == null || field.compare(Op.GREATER_THAN, f)) {
+							pageId = entry.getLeftChild();
+							isfound = true;
+							break;
+						}
+					}
+					if (!isfound && entry != null) {
+						pageId = entry.getRightChild();
+					}
+				} else { //BTreeLeafPage
+					/*Iterator<Tuple> it = ((BTreeLeafPage) page).iterator();
+					while (it.hasNext()) {
+						Tuple tuple = it.next();
+						Field field = tuple.getField(keyField);
+						if (f == null) {
+							page = getPage(tid,dirtypages,pageId,perm);
+							return (BTreeLeafPage) page;
+						}
+					}*/
+					return (BTreeLeafPage) getPage(tid,dirtypages,pageId,perm);
+				}
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
 	}
 	
 	/**

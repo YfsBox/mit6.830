@@ -24,8 +24,8 @@ import simpledb.storage.RecordId;
  */
 public class BTreeInternalPage extends BTreePage {
 	private final byte[] header;
-	private final Field[] keys;
-	private final int[] children;
+	private final Field[] keys; //对应了每个children的域
+	private final int[] children; //表示的是指针
 	private final int numSlots;
 	
 	private int childCategory; // either leaf or internal
@@ -733,7 +733,7 @@ class BTreeInternalPageIterator implements Iterator<BTreeEntry> {
 		throw new UnsupportedOperationException();
 	}
 }
-
+//这个迭代的是一个个BTreeEntry
 /**
  * Helper class that implements the Java Iterator for entries on a BTreeInternalPage in reverse.
  */
