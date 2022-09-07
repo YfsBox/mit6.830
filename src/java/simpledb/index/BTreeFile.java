@@ -275,17 +275,23 @@ public class BTreeFile implements DbFile {
 			page.deleteTuple(tuple);
 			newleafPage.insertTuple(tuple);
 		}
-
-		newleafPage.setRightSiblingId(page.getRightSiblingId());
+		BTreePageId oldrihgtId = page.getRightSiblingId();
+		if (oldrihgtId != null) {
+			BTreeLeafPage oldRightPage = (BTreeLeafPage) getPage(tid,dirtypages,oldrihgtId,Permissions.READ_ONLY);
+			oldRightPage.setLeftSiblingId(newleafPage.getId());
+			dirtypages.put(oldrihgtId,oldRightPage);
+		}
+		newleafPage.setRightSiblingId(oldrihgtId);
 		newleafPage.setLeftSiblingId(page.getId());
 		page.setRightSiblingId(newleafPage.getId());
 
-		dirtypages.put(page.getId(),page);
-		dirtypages.put(newleafPage.getId(),newleafPage);
-
 		BTreePage parentPage = getParentWithEmptySlots(tid,dirtypages,page.getParentId(),field);
 		((BTreeInternalPage) parentPage).insertEntry(new BTreeEntry(midTuple.getField(keyField),page.getId(),newleafPage.getId()));
+		updateParentPointers(tid,dirtypages,(BTreeInternalPage) parentPage);
+
 		dirtypages.put(parentPage.getId(),parentPage);
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(newleafPage.getId(),newleafPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midTuple.getField(keyField))) {
 			returnPage = newleafPage;
@@ -330,31 +336,31 @@ public class BTreeFile implements DbFile {
 		// the parent pointers of all the children moving to the new page.  updateParentPointers()
 		// will be useful here.  Return the page into which an entry with the given key field
 		// should be inserted.
+		//[0,m/2 - 1] [m/2 + 1, m]
 		BTreeInternalPage internalPage = page;
 		BTreeInternalPage newPage = (BTreeInternalPage) getEmptyPage(tid,dirtypages,BTreePageId.INTERNAL);
 		int maxEntry = internalPage.getMaxEntries(),index = 0;
-		BTreeEntry midEntry = null,entry = null;
-		Iterator<BTreeEntry> it = internalPage.iterator();
-		while (it.hasNext()) {
-			entry = it.next();
-			if (index == maxEntry / 2) {
-				internalPage.deleteKeyAndLeftChild(entry);
-				midEntry = entry;
-			}
-			if (index >= maxEntry / 2 + 1) {
-				internalPage.deleteKeyAndLeftChild(entry);
-				newPage.insertEntry(entry);
-			}
-			index += 1;
+		BTreeEntry midEntry = null;
+		Iterator<BTreeEntry> rit = internalPage.reverseIterator();
+		int maxSize = internalPage.getMaxEntries();
+		for (int i = 0; i < maxSize / 2 ; i ++) {
+			BTreeEntry entry = rit.next();
+			page.deleteKeyAndRightChild(entry);
+			newPage.insertEntry(entry);
 		}
+		midEntry = rit.next();
+		page.deleteKeyAndRightChild(midEntry);
+
 		updateParentPointers(tid,dirtypages,internalPage);
 		updateParentPointers(tid,dirtypages,newPage);
 
-		dirtypages.put(page.getId(),page);
-		dirtypages.put(newPage.getId(),newPage);
 		BTreePage parentPage = getParentWithEmptySlots(tid,dirtypages,page.getParentId(),field);
 		((BTreeInternalPage) parentPage).insertEntry(new BTreeEntry(midEntry.getKey(),page.getId(),newPage.getId()));
+		updateParentPointers(tid,dirtypages,(BTreeInternalPage) parentPage);
+
 		dirtypages.put(parentPage.getId(),parentPage);
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(newPage.getId(),newPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midEntry.getKey())) {
 			return newPage;
@@ -409,7 +415,6 @@ public class BTreeFile implements DbFile {
 		if(parent.getNumEmptySlots() == 0) {
 			parent = splitInternalPage(tid, dirtypages, parent, field);
 		}
-
 		return parent;
 
 	}
@@ -518,7 +523,6 @@ public class BTreeFile implements DbFile {
 			rootPtr = (BTreeRootPtrPage) getPage(tid, dirtypages, BTreeRootPtrPage.getId(tableid), Permissions.READ_WRITE);
 			rootPtr.setRootId(rootId);
 		}
-
 		// find and lock the left-most leaf page corresponding to the key field,
 		// and split the leaf page if there are no more slots available
 		BTreeLeafPage leafPage = findLeafPage(tid, dirtypages, rootId, Permissions.READ_WRITE, t.getField(keyField));
