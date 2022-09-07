@@ -192,9 +192,9 @@ public class BufferPool {
     private void updatePagePool(List<Page> pagelist,TransactionId tid) throws DbException{
         int size = pagelist.size();
         for (int i = 0 ; i < size; i ++) {
-            HeapPage page = (HeapPage) pagelist.get(i);
+            Page page =  pagelist.get(i);
             page.markDirty(true,tid);
-            int hashcode = page.pid.hashCode(); //注意是要得出pid的hashcode
+            int hashcode = page.getId().hashCode(); //注意是要得出pid的hashcode
             if (pages_.containsKey(hashcode)) {
                 Page oldPage = pages_.get(hashcode);
                 oldPage = page; //更新
@@ -214,8 +214,8 @@ public class BufferPool {
         // some code goes here
         // not necessary for lab1
         DbFile file = Database.getCatalog().getDatabaseFile(tableId);
-        HeapFile hpfile = (HeapFile) file;
-        List<Page> pagelist = hpfile.insertTuple(tid,t);
+        //HeapFile hpfile = (HeapFile) file;
+        List<Page> pagelist = file.insertTuple(tid,t);
         updatePagePool(pagelist,tid);
     }
 
@@ -237,8 +237,8 @@ public class BufferPool {
         // some code goes here
         // not necessary for lab1
         DbFile file = Database.getCatalog().getDatabaseFile(t.getRecordId().getPageId().getTableId());
-        HeapFile hpfile = (HeapFile) file;
-        List<Page> pagelist = hpfile.deleteTuple(tid,t);
+        //HeapFile hpfile = (HeapFile) file;
+        List<Page> pagelist = file.deleteTuple(tid,t);
         updatePagePool(pagelist,tid);
     }
 
@@ -253,9 +253,9 @@ public class BufferPool {
         Iterator<Integer> keysetIt = fifoQueue_.iterator();
         while (keysetIt.hasNext()) {
             int key = keysetIt.next();
-            HeapPage page = (HeapPage) pages_.get(key);
+            Page page = pages_.get(key);
             PageId pageId = page.getId();
-            HeapFile file = (HeapFile) Database.getCatalog().getDatabaseFile(pageId.getTableId());
+            DbFile file = Database.getCatalog().getDatabaseFile(pageId.getTableId());
             if (page.isDirty() != null) { //说明dirty
                 file.writePage(page);
             }
@@ -342,7 +342,7 @@ public class BufferPool {
         Iterator<Integer> fifoIterator = fifoQueue_.iterator();
         while (fifoIterator.hasNext()) {
             int hash = fifoIterator.next();
-            HeapPage page = (HeapPage) pages_.get(hash);
+            Page page = pages_.get(hash);
             if (page.isDirty() == null) {
                 fifoIterator.remove();
                 pages_.remove(hash);

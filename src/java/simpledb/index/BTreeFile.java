@@ -185,42 +185,6 @@ public class BTreeFile implements DbFile {
 	 * @return the left-most leaf page possibly containing the key field f
 	 * 
 	 */
-	private BTreePageId getPageIdFromPreOrNext(TransactionId tid,Map<PageId, Page> dirtypages,BTreePageId pageId,Field f) throws
-			DbException, TransactionAbortedException{
-		Page prePage = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
-		int pretag = pageId.pgcateg(),nexttag = pageId.pgcateg();
-		if (pretag == BTreePageId.INTERNAL) {
-			Iterator<BTreeEntry> it = ((BTreeInternalPage) prePage).iterator();
-			while (it.hasNext()) {
-				BTreeEntry entry = it.next();
-				Field field = entry.getKey();
-				if (field.compare(Op.GREATER_THAN_OR_EQ,f)) {
-					return pageId;
-				}
-			}
-		} else if (nexttag == BTreePageId.LEAF) {
-			Iterator<Tuple> it = ((BTreeLeafPage) prePage).iterator();
-			while (it.hasNext()) {
-				Tuple tuple = it.next();
-				if (tuple.getField(this.keyField).equals(f)) {
-					return pageId;
-				}
-			}
-		}
-		return null;
-	}
-
-	private BTreePageId getPageIdFromHeader(TransactionId tid,Map<PageId, Page> dirtypages,BTreePageId preid,
-												BTreePageId nextid,Field f) throws DbException, TransactionAbortedException{
-		if (f == null || getPageIdFromPreOrNext(tid,dirtypages,preid,f) != null) {
-			return preid;
-		} else if (getPageIdFromPreOrNext(tid,dirtypages,nextid,f) != null) {
-			return nextid;
-		}
-		return null;
-	}
-
-
 	private BTreeLeafPage findLeafPage(TransactionId tid, Map<PageId, Page> dirtypages, BTreePageId pid, Permissions perm,
                                        Field f)
 					throws DbException, TransactionAbortedException {
@@ -230,16 +194,7 @@ public class BTreeFile implements DbFile {
 			while (pageId.pgcateg() != BTreePageId.LEAF) {
 				Page page = getPage(tid,dirtypages,pageId,Permissions.READ_ONLY);
 				int pgcatag = pageId.pgcateg();
-				if (pgcatag == BTreePageId.ROOT_PTR) {
-					BTreeRootPtrPage root = getRootPtrPage(tid,dirtypages);
-					pageId = root.getHeaderId();
-				}
-				else if (pgcatag == BTreePageId.HEADER) {
-					BTreeHeaderPage headerPage = (BTreeHeaderPage) page;
-					BTreePageId preId = ((BTreeHeaderPage) page).getPrevPageId();
-					BTreePageId nextId = ((BTreeHeaderPage) page).getNextPageId();
-					pageId = getPageIdFromHeader(tid,dirtypages,preId,nextId,f);
-				} else if (pgcatag == BTreePageId.INTERNAL) {
+				if (pgcatag == BTreePageId.INTERNAL) {
 					Iterator<BTreeEntry> it = ((BTreeInternalPage) page).iterator();
 					BTreeEntry entry = null;
 					boolean isfound = false;
@@ -328,16 +283,23 @@ public class BTreeFile implements DbFile {
 		dirtypages.put(page.getId(),page);
 		dirtypages.put(newleafPage.getId(),newleafPage);
 
-		BTreePage parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_ONLY);
 
-		BTreeInternalPage internalPage = (BTreeInternalPage) parentPage;
-		if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
-			parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_WRITE);
-			internalPage = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midTuple.getField(keyField));
+		if (page.getId().pgcateg() != BTreePageId.ROOT_PTR) {
+			BTreePage parentPage = (BTreePage) getPage(tid, dirtypages, page.getParentId(), Permissions.READ_ONLY);
+			BTreeInternalPage internalPage = (BTreeInternalPage) parentPage;
+			if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
+				parentPage = (BTreePage) getPage(tid, dirtypages, page.getParentId(), Permissions.READ_WRITE);
+				internalPage = splitInternalPage(tid, dirtypages, (BTreeInternalPage) parentPage, midTuple.getField(keyField));
+			}
+
+			internalPage.insertEntry(new BTreeEntry(midTuple.getField(keyField), page.getId(), newleafPage.getId()));
+			dirtypages.put(internalPage.getId(), internalPage);
+		} else {
+			//BTreeRootPtrPage testpage;
+			BTreeRootPtrPage root;
+
+
 		}
-
-		internalPage.insertEntry(new BTreeEntry(midTuple.getField(keyField),page.getId(),newleafPage.getId()));
-		dirtypages.put(internalPage.getId(),internalPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midTuple.getField(keyField))) {
 			returnPage = newleafPage;
@@ -385,31 +347,34 @@ public class BTreeFile implements DbFile {
 		BTreeInternalPage internalPage = page;
 		BTreeInternalPage newPage = (BTreeInternalPage) getEmptyPage(tid,dirtypages,BTreePageId.INTERNAL);
 		int maxEntry = internalPage.getMaxEntries(),index = 0;
-		BTreeEntry midEntry = null;
+		BTreeEntry midEntry = null,entry = null;
 		Iterator<BTreeEntry> it = internalPage.iterator();
 		while (it.hasNext()) {
-			BTreeEntry entry = it.next();
+			entry = it.next();
 			if (index == maxEntry / 2) {
+				internalPage.deleteKeyAndLeftChild(entry);
 				midEntry = entry;
 			}
 			if (index >= maxEntry / 2 + 1) {
+				internalPage.deleteKeyAndLeftChild(entry);
 				newPage.insertEntry(entry);
-				page.deleteKeyAndLeftChild(entry);
 			}
 			index += 1;
 		}
-		updateParentPointers(tid,dirtypages,internalPage);
+		//updateParentPointers(tid,dirtypages,internalPage);
 		updateParentPointers(tid,dirtypages,newPage);
 
 		dirtypages.put(page.getId(),page);
-		dirtypages.put(newPage.getId(), newPage);
+		dirtypages.put(newPage.getId(),newPage);
 
 		BTreePage parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_ONLY);
-		while (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
+		if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
 			parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_WRITE);
-			BTreeInternalPage internal = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midEntry.getKey());
-			parentPage = (BTreePage) getPage(tid,dirtypages,internal.getParentId(),Permissions.READ_ONLY);
+			parentPage = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midEntry.getKey());
 		}
+
+		((BTreeInternalPage) parentPage).insertEntry(new BTreeEntry(midEntry.getKey(),page.getId(),newPage.getId()));
+		dirtypages.put(internalPage.getId(),internalPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midEntry.getKey())) {
 			return newPage;
