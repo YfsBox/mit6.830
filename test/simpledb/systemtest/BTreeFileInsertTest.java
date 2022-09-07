@@ -98,7 +98,7 @@ public class BTreeFileInsertTest extends SimpleDbTestBase {
 				tup = BTreeUtility.getBTreeTuple(i, 2);
 				empty.insertTuple(tid, tup);
 			}
-
+			System.out.printf("The numPages is %d\n",empty.numPages());
 		}
 
 		BTreeChecker.checkRep(empty, tid, new HashMap<>(), true);

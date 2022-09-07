@@ -201,7 +201,7 @@ public class BTreeFile implements DbFile {
 					while (it.hasNext()) {
 						entry = it.next();
 						Field field = entry.getKey();
-						if (f == null || field.compare(Op.GREATER_THAN, f)) {
+						if (f == null || field.compare(Op.GREATER_THAN_OR_EQ, f)) {
 							pageId = entry.getLeftChild();
 							isfound = true;
 							break;
