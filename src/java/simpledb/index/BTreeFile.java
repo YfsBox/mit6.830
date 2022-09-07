@@ -283,23 +283,9 @@ public class BTreeFile implements DbFile {
 		dirtypages.put(page.getId(),page);
 		dirtypages.put(newleafPage.getId(),newleafPage);
 
-
-		if (page.getId().pgcateg() != BTreePageId.ROOT_PTR) {
-			BTreePage parentPage = (BTreePage) getPage(tid, dirtypages, page.getParentId(), Permissions.READ_ONLY);
-			BTreeInternalPage internalPage = (BTreeInternalPage) parentPage;
-			if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
-				parentPage = (BTreePage) getPage(tid, dirtypages, page.getParentId(), Permissions.READ_WRITE);
-				internalPage = splitInternalPage(tid, dirtypages, (BTreeInternalPage) parentPage, midTuple.getField(keyField));
-			}
-
-			internalPage.insertEntry(new BTreeEntry(midTuple.getField(keyField), page.getId(), newleafPage.getId()));
-			dirtypages.put(internalPage.getId(), internalPage);
-		} else {
-			//BTreeRootPtrPage testpage;
-			BTreeRootPtrPage root;
-
-
-		}
+		BTreePage parentPage = getParentWithEmptySlots(tid,dirtypages,page.getParentId(),field);
+		((BTreeInternalPage) parentPage).insertEntry(new BTreeEntry(midTuple.getField(keyField),page.getId(),newleafPage.getId()));
+		dirtypages.put(parentPage.getId(),parentPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midTuple.getField(keyField))) {
 			returnPage = newleafPage;
@@ -361,20 +347,14 @@ public class BTreeFile implements DbFile {
 			}
 			index += 1;
 		}
-		//updateParentPointers(tid,dirtypages,internalPage);
+		updateParentPointers(tid,dirtypages,internalPage);
 		updateParentPointers(tid,dirtypages,newPage);
 
 		dirtypages.put(page.getId(),page);
 		dirtypages.put(newPage.getId(),newPage);
-
-		BTreePage parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_ONLY);
-		if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
-			parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_WRITE);
-			parentPage = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midEntry.getKey());
-		}
-
+		BTreePage parentPage = getParentWithEmptySlots(tid,dirtypages,page.getParentId(),field);
 		((BTreeInternalPage) parentPage).insertEntry(new BTreeEntry(midEntry.getKey(),page.getId(),newPage.getId()));
-		dirtypages.put(internalPage.getId(),internalPage);
+		dirtypages.put(parentPage.getId(),parentPage);
 
 		if (field.compare(Op.GREATER_THAN_OR_EQ,midEntry.getKey())) {
 			return newPage;
