@@ -312,7 +312,39 @@ public class BTreeFile implements DbFile {
 		// the new entry.  getParentWithEmtpySlots() will be useful here.  Don't forget to update
 		// the sibling pointers of all the affected leaf pages.  Return the page into which a 
 		// tuple with the given key field should be inserted.
-        return null;
+		BTreeLeafPage newleafPage = (BTreeLeafPage) getEmptyPage(tid,dirtypages,BTreePageId.LEAF),returnPage;
+		int maxTuple = page.getMaxTuples();
+		Tuple midTuple = page.getTuple(maxTuple / 2);
+		for (int i = maxTuple / 2 ; i <= maxTuple - 1; i ++) {
+			Tuple tuple = page.getTuple(i);
+			page.deleteTuple(tuple);
+			newleafPage.insertTuple(tuple);
+		}
+
+		newleafPage.setRightSiblingId(page.getRightSiblingId());
+		newleafPage.setLeftSiblingId(page.getId());
+		page.setRightSiblingId(newleafPage.getId());
+
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(newleafPage.getId(),newleafPage);
+
+		BTreePage parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_ONLY);
+
+		BTreeInternalPage internalPage = (BTreeInternalPage) parentPage;
+		if (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
+			parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_WRITE);
+			internalPage = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midTuple.getField(keyField));
+		}
+
+		internalPage.insertEntry(new BTreeEntry(midTuple.getField(keyField),page.getId(),newleafPage.getId()));
+		dirtypages.put(internalPage.getId(),internalPage);
+
+		if (field.compare(Op.GREATER_THAN_OR_EQ,midTuple.getField(keyField))) {
+			returnPage = newleafPage;
+		} else {
+			returnPage = page;
+		}
+        return returnPage;
 		
 	}
 	
@@ -350,7 +382,39 @@ public class BTreeFile implements DbFile {
 		// the parent pointers of all the children moving to the new page.  updateParentPointers()
 		// will be useful here.  Return the page into which an entry with the given key field
 		// should be inserted.
-		return null;
+		BTreeInternalPage internalPage = page;
+		BTreeInternalPage newPage = (BTreeInternalPage) getEmptyPage(tid,dirtypages,BTreePageId.INTERNAL);
+		int maxEntry = internalPage.getMaxEntries(),index = 0;
+		BTreeEntry midEntry = null;
+		Iterator<BTreeEntry> it = internalPage.iterator();
+		while (it.hasNext()) {
+			BTreeEntry entry = it.next();
+			if (index == maxEntry / 2) {
+				midEntry = entry;
+			}
+			if (index >= maxEntry / 2 + 1) {
+				newPage.insertEntry(entry);
+				page.deleteKeyAndLeftChild(entry);
+			}
+			index += 1;
+		}
+		updateParentPointers(tid,dirtypages,internalPage);
+		updateParentPointers(tid,dirtypages,newPage);
+
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(newPage.getId(), newPage);
+
+		BTreePage parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_ONLY);
+		while (parentPage.getNumEmptySlots() == 0 && parentPage.getId().pgcateg() == BTreePageId.INTERNAL) {
+			parentPage = (BTreePage) getPage(tid,dirtypages,page.getParentId(),Permissions.READ_WRITE);
+			BTreeInternalPage internal = splitInternalPage(tid,dirtypages,(BTreeInternalPage) parentPage, midEntry.getKey());
+			parentPage = (BTreePage) getPage(tid,dirtypages,internal.getParentId(),Permissions.READ_ONLY);
+		}
+
+		if (field.compare(Op.GREATER_THAN_OR_EQ,midEntry.getKey())) {
+			return newPage;
+		}
+		return page;
 	}
 	
 	/**
