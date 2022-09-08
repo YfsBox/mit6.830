@@ -828,6 +828,7 @@ public class BTreeFile implements DbFile {
 			rightSibling.deleteKeyAndRightChild(bTreeEntry);
 			page.insertEntry(bTreeEntry);
 		}
+
 		newBtreeEntry = it.next();
 		rightSibling.deleteKeyAndRightChild(newBtreeEntry);
 
@@ -878,9 +879,18 @@ public class BTreeFile implements DbFile {
 			leftPage.insertTuple(tuple);
 		}
 		BTreePageId newrightId = rightPage.getRightSiblingId();
+		if(newrightId != null) {
+			BTreeLeafPage newrightPage = (BTreeLeafPage) getPage(tid,dirtypages,newrightId,Permissions.READ_ONLY);
+			newrightPage.setLeftSiblingId(leftPage.getId());
+			dirtypages.put(newrightId,newrightPage);
+		}
 		leftPage.setRightSiblingId(newrightId);
 		setEmptyPage(tid,dirtypages,rightPage.getId().getPageNumber());
 		deleteParentEntry(tid,dirtypages,leftPage,parent,parentEntry);
+
+		dirtypages.put(leftPage.getId(),leftPage);
+		dirtypages.put(rightPage.getId(),rightPage);
+		dirtypages.put(parent.getId(),parent);
 
 	}
 
@@ -924,12 +934,15 @@ public class BTreeFile implements DbFile {
 			rightPage.deleteKeyAndLeftChild(entry);
 			leftPage.insertEntry(entry);
 		}
+		updateParentPointers(tid,dirtypages,leftPage);
 
 		setEmptyPage(tid,dirtypages,rightPage.getId().getPageNumber());
 		deleteParentEntry(tid,dirtypages,leftPage,parent,parentEntry);
+		updateParentPointers(tid,dirtypages,parent);
 
-		updateParentPointers(tid,dirtypages,leftPage);
-
+		dirtypages.put(leftPage.getId(),leftPage);
+		dirtypages.put(rightPage.getId(),rightPage);
+		dirtypages.put(parent.getId(),parent);
 	}
 	
 	/**

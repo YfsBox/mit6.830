@@ -101,8 +101,10 @@ public class BTreeTest extends SimpleDbTestBase {
     	BlockingQueue<List<Integer>> insertedTuples = new ArrayBlockingQueue<>(100000);
 		insertedTuples.addAll(tuples);
 		assertEquals(31000, insertedTuples.size());
+
+
 		int size = insertedTuples.size();
-		
+
 		// now insert some random tuples
 		System.out.println("Inserting tuples...");
     	List<BTreeInserter> insertThreads = new ArrayList<>();
@@ -124,6 +126,7 @@ public class BTreeTest extends SimpleDbTestBase {
 		assertTrue(insertedTuples.size() > size);
 		
 		// now insert and delete tuples at the same time
+
 		System.out.println("Inserting and deleting tuples...");
     	List<BTreeDeleter> deleteThreads = new ArrayList<>();
 		for(BTreeInserter thread : insertThreads) {
@@ -214,7 +217,6 @@ public class BTreeTest extends SimpleDbTestBase {
 		
 		// set the page size back
 		BufferPool.resetPageSize();
-		
     }
 
     /** Make test compatible with older version of ant. */
