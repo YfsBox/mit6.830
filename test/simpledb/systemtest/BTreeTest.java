@@ -175,8 +175,10 @@ public class BTreeTest extends SimpleDbTestBase {
 
         List<List<Integer>> tuplesList = new ArrayList<>(insertedTuples);
 		TransactionId tid = new TransactionId();
-		
+
+
 		// First look for random tuples and make sure we can find them
+
 		System.out.println("Searching for tuples...");
 		for(int i = 0; i < 10000; i++) {
 			int rand = r.nextInt(insertedTuples.size());
@@ -196,6 +198,7 @@ public class BTreeTest extends SimpleDbTestBase {
 			assertTrue(found);
 			it.close();
 		}
+
 		
 		// now make sure all the tuples are in order and we have the right number
 		System.out.println("Performing sanity checks...");

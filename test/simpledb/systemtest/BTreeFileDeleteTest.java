@@ -299,7 +299,8 @@ public class BTreeFileDeleteTest extends SimpleDbTestBase {
 		// occupancy and cause the entries to be redistributed
 		assertEquals(62, leftChild.getNumEmptySlots());
 		for(int i = 0; i < 124; ++i) {
-			Database.getBufferPool().deleteTuple(tid, it.next());
+			Tuple tuple = it.next();
+			Database.getBufferPool().deleteTuple(tid,tuple);
 			it.rewind();
 		}
 

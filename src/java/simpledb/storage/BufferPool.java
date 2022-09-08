@@ -10,6 +10,7 @@ import java.io.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -37,7 +38,7 @@ public class BufferPool {
     constructor instead. */
     public static final int DEFAULT_PAGES = 50;
     //private ArrayList<Page> pages_;
-    private HashMap<Integer,Page> pages_;
+    private ConcurrentMap<Integer,Page> pages_;
     private int maxPageNum_;
     private LinkedList<Integer> fifoQueue_;
     private LockManager lockManager_;
@@ -48,7 +49,7 @@ public class BufferPool {
      */
     public BufferPool(int numPages) {
         // some code goes here
-        pages_ = new HashMap<Integer,Page>();
+        pages_ = new ConcurrentHashMap<Integer,Page>();
         maxPageNum_ = numPages;
         fifoQueue_ = new LinkedList<Integer>();
         lockManager_ = new LockManager();
@@ -109,7 +110,9 @@ public class BufferPool {
         DbFile dbfile = Database.getCatalog().getDatabaseFile(pid.getTableId());
         Page page = dbfile.readPage(pid);
         pages_.put(hashcode,page);
-        fifoQueue_.add(hashcode);
+        if (!fifoQueue_.contains(hashcode)) {
+            fifoQueue_.add(hashcode);
+        }
         return page;
     }
 
@@ -301,7 +304,7 @@ public class BufferPool {
                 DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
                 try {
                     int hashcode = page.getId().hashCode();
-                    HeapPage hpage = (HeapPage) page.getBeforeImage();
+                    Page hpage =  page.getBeforeImage();
                     file.writePage(hpage);
                     pages_.put(hashcode,hpage);
                 } catch (IOException e) {
