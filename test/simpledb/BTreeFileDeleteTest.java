@@ -226,7 +226,7 @@ public class BTreeFileDeleteTest extends SimpleDbTestBase {
 		assertEquals(totalEntries, page.getNumEntries() + sibling.getNumEntries());
 		
 		// have the entries been evenly distributed?
-		System.out.printf("pageTuple is %d,slibingTuple is %d,tutal tuple/2 is %d\n",page.getNumEntries(),sibling.getNumEntries(),totalEntries);
+		//System.out.printf("pageTuple is %d,slibingTuple is %d,tutal tuple/2 is %d\n",page.getNumEntries(),sibling.getNumEntries(),totalEntries);
 		assertTrue(page.getNumEntries() == totalEntries/2 || page.getNumEntries() == totalEntries/2 + 1);
 		assertTrue(sibling.getNumEntries() == totalEntries/2 || sibling.getNumEntries() == totalEntries/2 + 1);
 		
