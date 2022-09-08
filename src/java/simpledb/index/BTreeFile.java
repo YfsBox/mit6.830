@@ -756,6 +756,36 @@ public class BTreeFile implements DbFile {
 		// that the entries are evenly distributed. Be sure to update
 		// the corresponding parent entry. Be sure to update the parent
 		// pointers of all children in the entries that were moved.
+		Iterator<BTreeEntry> rit = leftSibling.reverseIterator();
+		int totalNum = page.getNumEntries() + leftSibling.getNumEntries();
+		BTreeEntry bTreeEntry = null,newBtreeEntry = null;
+
+		BTreeEntry oldParentEntry = new BTreeEntry(parentEntry.getKey(),
+									leftSibling.reverseIterator().next().getRightChild(),
+									page.iterator().next().getLeftChild());
+
+		page.insertEntry(oldParentEntry);
+		updateParentPointers(tid,dirtypages,page);
+
+		while (page.getNumEntries() < totalNum / 2) {
+			bTreeEntry = rit.next();
+			leftSibling.deleteKeyAndRightChild(bTreeEntry);
+			page.insertEntry(bTreeEntry);
+		}
+		newBtreeEntry = rit.next();
+		leftSibling.deleteKeyAndRightChild(newBtreeEntry);
+
+		updateParentPointers(tid,dirtypages,leftSibling);
+		updateParentPointers(tid,dirtypages,page);
+
+		parentEntry.setKey(newBtreeEntry.getKey());
+		parent.updateEntry(parentEntry);
+		updateParentPointers(tid,dirtypages,parent);
+
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(leftSibling.getId(),leftSibling);
+		dirtypages.put(parent.getId(),parent);
+
 	}
 	
 	/**
@@ -783,6 +813,35 @@ public class BTreeFile implements DbFile {
 		// that the entries are evenly distributed. Be sure to update
 		// the corresponding parent entry. Be sure to update the parent
 		// pointers of all children in the entries that were moved.
+		Iterator<BTreeEntry> it = rightSibling.iterator();
+		int totalNum = page.getNumEntries() + rightSibling.getNumEntries();
+		BTreeEntry bTreeEntry = null,newBtreeEntry = null;
+
+		BTreeEntry oldParentEntry = new BTreeEntry(parentEntry.getKey(),
+				page.reverseIterator().next().getRightChild(),
+				rightSibling.iterator().next().getLeftChild());
+
+		page.insertEntry(oldParentEntry);
+		updateParentPointers(tid,dirtypages,page);
+
+		while (page.getNumEntries() < totalNum / 2) {
+			bTreeEntry = it.next();
+			rightSibling.deleteKeyAndRightChild(bTreeEntry);
+			page.insertEntry(bTreeEntry);
+		}
+		newBtreeEntry = it.next();
+		rightSibling.deleteKeyAndRightChild(newBtreeEntry);
+
+		updateParentPointers(tid,dirtypages,rightSibling);
+		updateParentPointers(tid,dirtypages,page);
+
+		parentEntry.setKey(newBtreeEntry.getKey());
+		parent.updateEntry(parentEntry);
+		updateParentPointers(tid,dirtypages,parent);
+
+		dirtypages.put(page.getId(),page);
+		dirtypages.put(rightSibling.getId(),rightSibling);
+		dirtypages.put(parent.getId(),parent);
 	}
 	
 	/**
