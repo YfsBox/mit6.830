@@ -655,6 +655,28 @@ public class BTreeFile implements DbFile {
         // Move some of the tuples from the sibling to the page so
 		// that the tuples are evenly distributed. Be sure to update
 		// the corresponding parent entry.
+		Tuple tuple = null,newParentEntry;
+		int maxTupleNum = page.getNumTuples() + sibling.getNumTuples();
+		if (!isRightSibling) {
+			Iterator<Tuple> rit = sibling.reverseIterator();
+			while (page.getNumTuples() < maxTupleNum / 2) {
+				tuple = rit.next();
+				sibling.deleteTuple(tuple);
+				page.insertTuple(tuple);
+			}
+			newParentEntry = tuple;
+		} else {
+			Iterator<Tuple> it = sibling.iterator();
+			while (page.getNumTuples() < maxTupleNum / 2) {
+				tuple = it.next();
+				sibling.deleteTuple(tuple);
+				page.insertTuple(tuple);
+			}
+			newParentEntry = it.next();
+		}
+		entry.setKey(newParentEntry.getField(keyField));
+		entry.setRecordId(newParentEntry.getRecordId());
+
 	}
 
 	/**
