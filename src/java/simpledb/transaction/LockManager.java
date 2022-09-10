@@ -43,10 +43,11 @@ public class LockManager {
     public class LockState {
         private LockType lockType_;
         private TransactionId tid_; //设置读锁对应的只能是null
-        private int shardCnt_;
+        private ConcurrentMap<Integer,TransactionId> shardMap_;
 
         public LockState() {
             lockType_ = LockType.NULL_TYPE;
+            shardMap_ = new ConcurrentHashMap<Integer,TransactionId>();
             tid_ = null;
         }
 
@@ -63,9 +64,6 @@ public class LockManager {
         public void setLockType(LockType lockType) {
             lockType_ = lockType;
         }
-        public void setShardCnt(int cnt) {
-            shardCnt_ = cnt;
-        }
         private void updateState(LockType lockType,TransactionId tid) {
             lockType_ = lockType;
             tid_ = tid;
@@ -74,22 +72,18 @@ public class LockManager {
             boolean result = false;
             if (lockType_.equals(LockType.NULL_TYPE)) {
                 if (lockType.equals(LockType.SHARED_TYPE)) {
-                    shardCnt_ = 1;
-                } else {
-                    shardCnt_ = 0;
+                    shardMap_.put((int) tid.getId(),tid);
                 }
                 updateState(lockType,tid);
                 result = true;
             } else if (lockType_.equals(LockType.SHARED_TYPE)) {
                 if (lockType.equals(lockType_)) {
-                    if (!tid.equals(tid_)) {
-                        shardCnt_ += 1;
-                    }
+                    shardMap_.put((int) tid.getId(),tid);
                     updateState(lockType,tid);
                     result = true;
                 } else {
-                    if (tid.equals(tid_) && shardCnt_ == 1) {
-                        shardCnt_ = 0;
+                    if (tid.equals(tid_) && shardMap_.size() == 1) {
+                        shardMap_.remove((int) tid.getId());
                         updateState(lockType,tid);
                         result = true;
                     } else {
@@ -174,13 +168,16 @@ public class LockManager {
                     if (currType.equals(LockType.EXCLUSIVE_TYPE) && tid.equals(currTid)) {
                         lockStates_.get(hashcode).setTid(null);
                         lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
+                        lockStates_.get(hashcode).shardMap_.clear();
                     } else if (currType.equals(LockType.SHARED_TYPE)) { //通常情况下,当前为共享锁的话
-                        int shardCnt = lockStates_.get(hashcode).shardCnt_;
-                        if (shardCnt == 1) {
+                        int shardCnt = lockStates_.get(hashcode).shardMap_.size();
+                        if (shardCnt <= 1 && tid.equals(currTid)) {
                             lockStates_.get(hashcode).setTid(null);
                             lockStates_.get(hashcode).setLockType(LockType.NULL_TYPE);
+                            lockStates_.get(hashcode).shardMap_.clear();
                         } else {
-                            lockStates_.get(hashcode).setShardCnt(shardCnt - 1);
+                            lockStates_.get(hashcode).shardMap_.remove((int) tid.getId());
+                            lockStates_.get(hashcode).setTid(lockStates_.get(hashcode).shardMap_.values().iterator().next());
                         }
                     }
                     requestIterator.remove();//移除这一项

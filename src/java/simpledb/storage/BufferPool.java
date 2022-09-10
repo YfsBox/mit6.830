@@ -30,7 +30,7 @@ public class BufferPool {
     /** Bytes per page, including header. */
     private static final int DEFAULT_PAGE_SIZE = 4096;
     private static final int MAX_TRYACQUIRE_NUM = 50000;
-    private static final long TIMEOUT = 2000;
+    private static final long TIMEOUT = 2500;
 
     private static int pageSize = DEFAULT_PAGE_SIZE;
     
