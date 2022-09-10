@@ -273,7 +273,7 @@ public class BTreeFile implements DbFile {
 		}
 		BTreePageId oldrihgtId = page.getRightSiblingId();
 		if (oldrihgtId != null) {
-			BTreeLeafPage oldRightPage = (BTreeLeafPage) getPage(tid,dirtypages,oldrihgtId,Permissions.READ_ONLY);
+			BTreeLeafPage oldRightPage = (BTreeLeafPage) getPage(tid,dirtypages,oldrihgtId,Permissions.READ_WRITE);
 			oldRightPage.setLeftSiblingId(newleafPage.getId());
 			dirtypages.put(oldrihgtId,oldRightPage);
 		}
@@ -334,12 +334,11 @@ public class BTreeFile implements DbFile {
 		// should be inserted.
 		//[0,m/2 - 1] [m/2 + 1, m]
 		//System.out.println("split interval");
-		BTreeInternalPage internalPage = page;
 		BTreeInternalPage newPage = (BTreeInternalPage) getEmptyPage(tid,dirtypages,BTreePageId.INTERNAL);
-		int maxEntry = internalPage.getMaxEntries(),index = 0;
+		int maxEntry = page.getMaxEntries(),index = 0;
 		BTreeEntry midEntry = null;
-		Iterator<BTreeEntry> rit = internalPage.reverseIterator();
-		int maxSize = internalPage.getMaxEntries();
+		Iterator<BTreeEntry> rit = page.reverseIterator();
+		int maxSize = page.getMaxEntries();
 		for (int i = 0; i < maxSize / 2 ; i ++) {
 			BTreeEntry entry = rit.next();
 			page.deleteKeyAndRightChild(entry);
@@ -348,7 +347,7 @@ public class BTreeFile implements DbFile {
 		midEntry = rit.next();
 		page.deleteKeyAndRightChild(midEntry);
 
-		updateParentPointers(tid,dirtypages,internalPage);
+		updateParentPointers(tid,dirtypages,page);
 		updateParentPointers(tid,dirtypages,newPage);
 
 		BTreePage parentPage = getParentWithEmptySlots(tid,dirtypages,page.getParentId(),field);
@@ -662,7 +661,7 @@ public class BTreeFile implements DbFile {
 				sibling.deleteTuple(tuple);
 				page.insertTuple(tuple);
 			}
-			newParentEntry = rit.next();
+			newParentEntry = tuple;
 		} else {
 			Iterator<Tuple> it = sibling.iterator();
 			while (page.getNumTuples() < maxTupleNum / 2) {
@@ -886,7 +885,7 @@ public class BTreeFile implements DbFile {
 		}
 		BTreePageId newrightId = rightPage.getRightSiblingId();
 		if(newrightId != null) {
-			BTreeLeafPage newrightPage = (BTreeLeafPage) getPage(tid,dirtypages,newrightId,Permissions.READ_ONLY);
+			BTreeLeafPage newrightPage = (BTreeLeafPage) getPage(tid,dirtypages,newrightId,Permissions.READ_WRITE);
 			newrightPage.setLeftSiblingId(leftPage.getId());
 			dirtypages.put(newrightId,newrightPage);
 		}
