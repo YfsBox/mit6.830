@@ -662,7 +662,7 @@ public class BTreeFile implements DbFile {
 				sibling.deleteTuple(tuple);
 				page.insertTuple(tuple);
 			}
-			newParentEntry = tuple;
+			newParentEntry = rit.next();
 		} else {
 			Iterator<Tuple> it = sibling.iterator();
 			while (page.getNumTuples() < maxTupleNum / 2) {
@@ -765,7 +765,7 @@ public class BTreeFile implements DbFile {
 									page.iterator().next().getLeftChild());
 
 		page.insertEntry(oldParentEntry);
-		updateParentPointers(tid,dirtypages,page);
+		//updateParentPointers(tid,dirtypages,page);
 
 		while (page.getNumEntries() < totalNum / 2) {
 			bTreeEntry = rit.next();

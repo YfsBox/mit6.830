@@ -2,6 +2,7 @@
 package simpledb.storage;
 
 import simpledb.common.Database;
+import simpledb.transaction.Transaction;
 import simpledb.transaction.TransactionId;
 import simpledb.common.Debug;
 
@@ -75,8 +76,8 @@ for each active transaction.
 */
 public class LogFile {
 
-    final File logFile;
-    private RandomAccessFile raf;
+    final File logFile; //logfile对应的文件
+    private RandomAccessFile raf; //用于随机实现对于文件的随机访问
     Boolean recoveryUndecided; // no call to recover() and no append to log
 
     static final int ABORT_RECORD = 1;
@@ -125,9 +126,9 @@ public class LogFile {
     // we're about to append a log record. if we weren't sure whether the
     // DB wants to do recovery, we're sure now -- it didn't. So truncate
     // the log.
-    void preAppend() throws IOException {
+    void preAppend() throws IOException { //将会直接往后追加一个recard
         totalRecords++;
-        if(recoveryUndecided){
+        if(recoveryUndecided){ //将日志刷新
             recoveryUndecided = false;
             raf.seek(0);
             raf.setLength(0);
@@ -152,20 +153,19 @@ public class LogFile {
         synchronized (Database.getBufferPool()) {
 
             synchronized(this) {
-                preAppend();
+                preAppend(); //首先追加一个abort相关的log
                 //Debug.log("ABORT");
                 //should we verify that this is a live transaction?
 
                 // must do this here, since rollback only works for
                 // live transactions (needs tidToFirstLogRecord)
-                rollback(tid);
-
-                raf.writeInt(ABORT_RECORD);
+                rollback(tid); //实现tid事务的回滚
+                raf.writeInt(ABORT_RECORD);  //将这个abort日志的内容写完
                 raf.writeLong(tid.getId());
                 raf.writeLong(currentOffset);
                 currentOffset = raf.getFilePointer();
-                force();
-                tidToFirstLogRecord.remove(tid.getId());
+                force(); //将内容同步到文件中去
+                tidToFirstLogRecord.remove(tid.getId());//将该事务从LogRecord中移除
             }
         }
     }
@@ -179,7 +179,6 @@ public class LogFile {
         preAppend();
         Debug.log("COMMIT " + tid.getId());
         //should we verify that this is a live transaction?
-
         raf.writeInt(COMMIT_RECORD);
         raf.writeLong(tid.getId());
         raf.writeLong(currentOffset);
@@ -202,14 +201,13 @@ public class LogFile {
         Debug.log("WRITE, offset = " + raf.getFilePointer());
         preAppend();
         /* update record conists of
-
            record type
            transaction id
            before page data (see writePageData)
            after page data
            start offset
         */
-        raf.writeInt(UPDATE_RECORD);
+        raf.writeInt(UPDATE_RECORD); //写入一个log标记,写入被写的事务的tid.
         raf.writeLong(tid.getId());
 
         writePageData(raf,before);
@@ -220,7 +218,7 @@ public class LogFile {
         Debug.log("WRITE OFFSET = " + currentOffset);
     }
 
-    void writePageData(RandomAccessFile raf, Page p) throws IOException{
+    void writePageData(RandomAccessFile raf, Page p) throws IOException {
         PageId pid = p.getId();
         int[] pageInfo = pid.serialize();
 
@@ -231,7 +229,6 @@ public class LogFile {
         // id class data
         // page class bytes
         // page class data
-
         String pageClassName = p.getClass().getName();
         String idClassName = pid.getClass().getName();
 
@@ -290,19 +287,18 @@ public class LogFile {
 
     /** Write a BEGIN record for the specified transaction
         @param tid The transaction that is beginning
-
     */
-    public synchronized  void logXactionBegin(TransactionId tid)
+    public synchronized  void logXactionBegin(TransactionId tid) //每写一个begin标识这是一个事务开始的阶段,并且将该事务所在的文件偏移组织成map
         throws IOException {
         Debug.log("BEGIN");
-        if(tidToFirstLogRecord.get(tid.getId()) != null){
+        if(tidToFirstLogRecord.get(tid.getId()) != null) {
             System.err.print("logXactionBegin: already began this tid\n");
             throw new IOException("double logXactionBegin()");
         }
         preAppend();
-        raf.writeInt(BEGIN_RECORD);
-        raf.writeLong(tid.getId());
-        raf.writeLong(currentOffset);
+        raf.writeInt(BEGIN_RECORD); // 4
+        raf.writeLong(tid.getId()); // 4
+        raf.writeLong(currentOffset); // 4
         tidToFirstLogRecord.put(tid.getId(), currentOffset);
         currentOffset = raf.getFilePointer();
 
@@ -346,13 +342,12 @@ public class LogFile {
                 //Debug.log("CP OFFSET = " + currentOffset);
             }
         }
-
         logTruncate();
     }
 
     /** Truncate any unneeded portion of the log to reduce its space
         consumption */
-    public synchronized void logTruncate() throws IOException {
+    public synchronized void logTruncate() throws IOException {//将文件无用的部分丢弃
         preAppend();
         raf.seek(0);
         long cpLoc = raf.readLong();
@@ -434,7 +429,6 @@ public class LogFile {
         }
 
         Debug.log("TRUNCATING LOG;  WAS " + raf.length() + " BYTES ; NEW START : " + minLogRecord + " NEW LENGTH: " + (raf.length() - minLogRecord));
-
         raf.close();
         logFile.delete();
         newFile.renameTo(logFile);
@@ -446,20 +440,148 @@ public class LogFile {
         //print();
     }
 
+    public class UpdatePageRecord {
+        public Page oldPage_;
+        public Page newPage_;
+        public long tid_;
+        public UpdatePageRecord(Page oldPage,Page newPage,long tid) {
+            oldPage_ = oldPage;
+            newPage_ = newPage;
+            tid_ = tid;
+        }
+    }
+
     /** Rollback the specified transaction, setting the state of any
-        of pages it updated to their pre-updated state.  To preserve
+        of pages it updated to their pre-updated state.To preserve
         transaction semantics, this should not be called on
         transactions that have already committed (though this may not
         be enforced by this method.)
 
         @param tid The transaction to rollback
     */
+    private void flushPage(Page page) throws IOException{
+        int tableId = page.getId().getTableId();
+        Database.getBufferPool().discardPage(page.getId());
+        DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+        file.writePage(page);
+    }
+
+    private void commitRedo(LinkedList<UpdatePageRecord> list,long tid) throws IOException{
+        Iterator<UpdatePageRecord> it = list.iterator();
+        while (it.hasNext()) {
+            UpdatePageRecord record = it.next();
+            if (record.tid_ == tid) {
+                flushPage(record.newPage_);
+                it.remove();
+            }
+        }
+    }
+
+    private void abortRedo(LinkedList<UpdatePageRecord> list,long tid) throws IOException{
+        Iterator<UpdatePageRecord> it = list.iterator();
+        LinkedList<Page> pageList = new LinkedList<Page>();
+        while (it.hasNext()) {
+            UpdatePageRecord record = it.next();
+            if (tid == -1 || record.tid_ == tid) {
+                pageList.add(record.oldPage_);
+                it.remove();
+            }
+        }
+        Collections.reverse(pageList);
+        Iterator<Page> pageIt = pageList.iterator();
+        while (pageIt.hasNext()) {
+            Page page = pageIt.next();
+            flushPage(page);
+        }
+
+    }
+
+    private ArrayList<Page> reverseReadLogs(long startPoint, TransactionId tid,boolean isRedo) throws IOException{
+        long curOffset = raf.getFilePointer();
+        ArrayList<Page> pagelist = new ArrayList<Page>();
+        LinkedList<UpdatePageRecord> stacklist = new LinkedList<UpdatePageRecord>();
+
+        raf.seek(startPoint);
+        long checkout;
+        if (startPoint == 0 && isRedo) {
+            checkout = raf.readLong();
+            if (checkout != -1) {
+                raf.seek(checkout);
+            }
+        }
+        while (true) {
+            try {
+                int cpType = raf.readInt();
+                long cpTid = raf.readLong();
+
+                switch (cpType) {
+                    case BEGIN_RECORD:
+                        raf.readLong();
+                        break;
+                    case ABORT_RECORD:
+                        raf.readLong();
+                        if (isRedo) {
+                            abortRedo(stacklist,cpTid);
+                        }
+                        break;
+                    case COMMIT_RECORD:
+                        raf.readLong();
+                        if (isRedo) {
+                            commitRedo(stacklist, cpTid);
+                        }
+                        break;
+                    case CHECKPOINT_RECORD:
+                        int numTransactions = raf.readInt();
+                        while (numTransactions-- > 0) {
+                            raf.readLong();
+                            raf.readLong();
+                        }
+                        raf.readLong();
+                        break;
+                    case UPDATE_RECORD:
+                        Page before = readPageData(raf);
+                        Page after = readPageData(raf);
+                        raf.readLong();
+                        if (isRedo) {
+                            stacklist.add(new UpdatePageRecord(before,after,cpTid));
+                            break;
+                        }
+                        if (cpTid == tid.getId()) {
+                            pagelist.add(before);
+                            break;
+                        }
+                }
+            } catch (EOFException e) {
+                //e.printStackTrace();
+                break;
+            }
+        }
+        abortRedo(stacklist,-1); //-1 表示全部处理
+        // Return the file pointer to its original position
+        raf.seek(curOffset);
+        if (!isRedo) {
+            Collections.reverse(pagelist);
+        }
+        return pagelist;
+    }
+
+
+
+
     public void rollback(TransactionId tid)
         throws NoSuchElementException, IOException {
         synchronized (Database.getBufferPool()) {
             synchronized(this) {
                 preAppend();
+                print();
                 // some code goes here
+                long offset = tidToFirstLogRecord.get(tid.getId());
+                ArrayList<Page> oldPageList = reverseReadLogs(offset,tid,false);
+                Iterator<Page> it = oldPageList.iterator();
+                while (it.hasNext()) {
+                    Page page = it.next();
+                    flushPage(page);
+                }
             }
         }
     }
@@ -487,6 +609,10 @@ public class LogFile {
             synchronized (this) {
                 recoveryUndecided = false;
                 // some code goes here
+                print();
+                //logTruncate();
+                preAppend();
+                reverseReadLogs(0,null,true);
             }
          }
     }
@@ -562,7 +688,6 @@ public class LogFile {
                 break;
             }
         }
-
         // Return the file pointer to its original position
         raf.seek(curOffset);
     }

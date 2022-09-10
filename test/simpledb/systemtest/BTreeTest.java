@@ -1,5 +1,6 @@
 package simpledb.systemtest;
 
+import simpledb.TestUtil;
 import simpledb.common.Database;
 import simpledb.execution.IndexPredicate;
 import simpledb.index.BTreeFile;
@@ -9,6 +10,7 @@ import simpledb.storage.*;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
@@ -122,7 +124,10 @@ public class BTreeTest extends SimpleDbTestBase {
 		}
 		
 		// wait for all threads to finish
-		waitForInserterThreads(insertThreads);	
+		waitForInserterThreads(insertThreads);
+		System.out.printf("insertTuple.size: %d,size : %d\n",insertedTuples.size(),size);
+
+
 		assertTrue(insertedTuples.size() > size);
 		
 		// now insert and delete tuples at the same time
@@ -140,17 +145,19 @@ public class BTreeTest extends SimpleDbTestBase {
 		waitForDeleterThreads(deleteThreads);
 		int numPages = bf.numPages();
 		size = insertedTuples.size();
-		
+		System.out.printf("insertTuple.size: %d,size : %d\n",insertedTuples.size(),size);
+
+
 		// now delete a bunch of tuples
 		System.out.println("Deleting tuples...");
 		for(int i = 0; i < 10; i++) {
 	    	for(BTreeDeleter thread : deleteThreads) {
 				thread.rerun(bf, insertedTuples);
 			}
-			
 			// wait for all threads to finish
 	    	waitForDeleterThreads(deleteThreads);
 		}
+		System.out.printf("The insertTuple: %d,size : %size\n",insertedTuples.size(),size);
 		assertTrue(insertedTuples.size() < size);
 		size = insertedTuples.size();
 		
@@ -175,7 +182,6 @@ public class BTreeTest extends SimpleDbTestBase {
 
         List<List<Integer>> tuplesList = new ArrayList<>(insertedTuples);
 		TransactionId tid = new TransactionId();
-
 
 		// First look for random tuples and make sure we can find them
 

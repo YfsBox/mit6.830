@@ -10,6 +10,7 @@ import java.io.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -40,7 +41,7 @@ public class BufferPool {
     //private ArrayList<Page> pages_;
     private ConcurrentMap<Integer,Page> pages_;
     private int maxPageNum_;
-    private LinkedList<Integer> fifoQueue_;
+    private ConcurrentLinkedQueue<Integer> fifoQueue_;
     private LockManager lockManager_;
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -51,7 +52,7 @@ public class BufferPool {
         // some code goes here
         pages_ = new ConcurrentHashMap<Integer,Page>();
         maxPageNum_ = numPages;
-        fifoQueue_ = new LinkedList<Integer>();
+        fifoQueue_ = new ConcurrentLinkedQueue<Integer>();
         lockManager_ = new LockManager();
     }
     
@@ -259,8 +260,13 @@ public class BufferPool {
             Page page = pages_.get(key);
             PageId pageId = page.getId();
             DbFile file = Database.getCatalog().getDatabaseFile(pageId.getTableId());
-            if (page.isDirty() != null) { //说明dirty
+
+            TransactionId dirtier = page.isDirty();
+            if (dirtier != null) {
+                Database.getLogFile().logWrite(dirtier, page.getBeforeImage(),page);
+                Database.getLogFile().force();
                 file.writePage(page);
+                page.markDirty(false,null);
             }
         }
     }
@@ -276,6 +282,19 @@ public class BufferPool {
     public synchronized void discardPage(PageId pid) {
         // some code goes here
         // not necessary for lab1
+        int hashcode = pid.hashCode();
+        if (pages_.containsKey(hashcode)) {
+            pages_.remove(hashcode);
+        } else {
+            return;
+        }
+        Iterator<Integer> it = fifoQueue_.iterator();
+        while (it.hasNext()) {
+            int hash = it.next();
+            if (hash == hashcode) {
+                it.remove();
+            }
+        }
     }
 
     /**
@@ -290,8 +309,13 @@ public class BufferPool {
         int hashCode = pid.hashCode();
         if (pages_.containsKey(hashCode)) {
             HeapPage page = (HeapPage) pages_.get(hashCode);
-            if (page.isDirty() != null) {
+
+            TransactionId dirtier = page.isDirty();
+            if (dirtier != null) {
+                Database.getLogFile().logWrite(dirtier, page.getBeforeImage(),page);
+                Database.getLogFile().force();
                 file.writePage(page);
+                page.markDirty(false,null);
             }
         } //写入
     }
@@ -326,11 +350,15 @@ public class BufferPool {
             if (tid.equals(page.isDirty())) { //只要等于tid就写回
                 DbFile file = Database.getCatalog().getDatabaseFile(page.getId().getTableId());
                 try {
+                    Database.getLogFile().logWrite(tid, page.getBeforeImage(),page); //对日志每次进行写之前
+                    Database.getLogFile().force();
                     file.writePage(page);
+                    page.setBeforeImage();
                 } catch (IOException e) {
                     System.out.println("The flush page error in flushForTid");
                     e.printStackTrace();
                 }
+                page.markDirty(false,null);
             }
         }
     }

@@ -675,6 +675,7 @@ public class BTreeUtility {
 				Database.getBufferPool().transactionComplete(tid);
 				List<Integer> tuple = tupleToList(t);
 				insertedTuples.put(tuple);
+				//System.out.printf("Thread %d insert tuple %d\n",this.tid.getId(),((IntField) t.getField(0)).getValue());
 				synchronized(slock) {
 					success = true;
 				}
@@ -685,7 +686,6 @@ public class BTreeUtility {
 				synchronized(elock) {
 					error = e;
 				}
-
                 Database.getBufferPool().transactionComplete(tid, false);
             }
 		}
