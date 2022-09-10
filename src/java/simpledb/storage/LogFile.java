@@ -450,7 +450,6 @@ public class LogFile {
             tid_ = tid;
         }
     }
-
     /** Rollback the specified transaction, setting the state of any
         of pages it updated to their pre-updated state.To preserve
         transaction semantics, this should not be called on
@@ -507,6 +506,16 @@ public class LogFile {
             checkout = raf.readLong();
             if (checkout != -1) {
                 raf.seek(checkout);
+                raf.readInt(); //type
+                raf.readLong(); //tid
+                int minOffset = Integer.MAX_VALUE;
+                int numTransaction = raf.readInt();
+                while (numTransaction -- > 0) {
+                    long tidId = raf.readLong();
+                    long beginoffset = raf.readLong();
+                    minOffset = Integer.min(minOffset,(int) beginoffset);
+                }
+                raf.seek(minOffset);
             }
         }
         while (true) {
@@ -533,8 +542,8 @@ public class LogFile {
                     case CHECKPOINT_RECORD:
                         int numTransactions = raf.readInt();
                         while (numTransactions-- > 0) {
-                            raf.readLong();
-                            raf.readLong();
+                            long tidId = raf.readLong();
+                            long  beginoffset = raf.readLong();
                         }
                         raf.readLong();
                         break;
